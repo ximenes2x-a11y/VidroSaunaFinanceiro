@@ -296,6 +296,7 @@
     .two-col{grid-template-columns:1fr;}
   }
 </style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
 
@@ -311,7 +312,7 @@
       <button class="nav-item" data-view="historico"><span class="dot"></span>Histórico</button>
     </nav>
     <div class="sidebar-footer">
-      <div class="save-note"><strong>Salvo automaticamente</strong><br>os dados ficam guardados neste artefato, associados à sua conta.<br><span id="saveStatus" style="font-weight:600;"></span></div>
+      <div class="save-note"><strong>Salvo automaticamente</strong><br>os dados ficam guardados no banco de dados do site.<br><span id="saveStatus" style="font-weight:600;"></span></div>
       <button class="reset-btn" id="exportBtn" style="margin-bottom:8px;">Baixar backup (.json)</button>
       <button class="reset-btn" id="importBtn" style="margin-bottom:8px;">Restaurar backup</button>
       <input type="file" id="importFileInput" accept=".json" style="display:none;">
@@ -725,18 +726,18 @@
     state.import4Done = true;
   }
 
-  // ---------- Storage ----------
-  // Dados compartilhados (shared=true): assim, a pessoa com quem você
-  // compartilhar o link vê os mesmos números que você, em vez de começar do zero.
-  // Tudo (categorias, lançamentos e as flags de importação) fica numa única
-  // chave, pra cada gravação ser UMA chamada só ao servidor — várias chamadas
-  // seguidas (uma por categoria/lançamento) foi o que causava erro de servidor
-  // durante a importação automática.
+  // ---------- Storage (Supabase) ----------
+  // Todos que abrirem este site com o mesmo link veem os mesmos dados —
+  // guardados numa única linha da tabela app_state, no Supabase.
+  var SUPABASE_URL = 'https://wabaomfcnezqlwhstukw.supabase.co';
+  var SUPABASE_ANON_KEY = 'sb_publishable_eaDtVMWwT8ovQ-GtE97QpA_BKl9kycY';
+  var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
   async function loadState(){
     try{
-      var res = await window.storage.get('appData', true);
-      if (res && res.value){
-        var data = JSON.parse(res.value);
+      var result = await sb.from('app_state').select('payload').eq('id', 1).single();
+      if (result.data && result.data.payload){
+        var data = result.data.payload;
         state.categories = data.categories || [];
         state.entries = data.entries || [];
         state.import1Done = !!data.import1Done;
@@ -745,7 +746,7 @@
         state.import4Done = !!data.import4Done;
         state.import5Done = !!data.import5Done;
       }
-    }catch(e){ /* sem dados salvos ainda, segue com os valores padrão abaixo */ }
+    }catch(e){ console.error('Falha ao carregar dados', e); }
 
     if (!state.categories || state.categories.length === 0){
       state.categories = seedCategories();
@@ -770,7 +771,7 @@
   async function saveAppData(){
     if (READ_ONLY) return;
     setSaveStatus('Salvando...', 'var(--text-faint)');
-    var payload = JSON.stringify({
+    var payload = {
       categories: state.categories,
       entries: state.entries,
       import1Done: state.import1Done,
@@ -778,16 +779,18 @@
       import3Done: state.import3Done,
       import4Done: state.import4Done,
       import5Done: state.import5Done
-    });
+    };
     try{
-      await window.storage.set('appData', payload, true);
+      var result = await sb.from('app_state').update({payload: payload, updated_at: new Date().toISOString()}).eq('id', 1);
+      if (result.error) throw result.error;
       setSaveStatus('Salvo ✓', 'var(--positive)');
       setTimeout(function(){ setSaveStatus(''); }, 2500);
     }catch(e){
       // Uma nova tentativa costuma resolver erros passageiros do servidor.
       try{
         await new Promise(function(r){ setTimeout(r, 800); });
-        await window.storage.set('appData', payload, true);
+        var retry = await sb.from('app_state').update({payload: payload, updated_at: new Date().toISOString()}).eq('id', 1);
+        if (retry.error) throw retry.error;
         setSaveStatus('Salvo ✓', 'var(--positive)');
         setTimeout(function(){ setSaveStatus(''); }, 2500);
       }catch(e2){
@@ -949,7 +952,7 @@
       '<div class="panel-title">'+(editing ? 'Editar lançamento' : 'Novo lançamento')+'</div>' +
       '<div class="panel-sub">Digite o grupo livremente — se ele ainda não existir, é criado na hora. Preencha só uma das quatro colunas de valor, na conta e direção certas.</div>' +
       '<datalist id="categoryOptions">'+datalistOptions+'</datalist>' +
-      '<form id="entryForm" novalidate>' +
+      '<div id="entryForm">' +
         '<div class="form-row">' +
           '<div class="field"><label>Data</label><input type="date" name="date" value="'+(editing ? editing.date : todayISO())+'"></div>' +
           '<div class="field grow"><label>Grupo</label><input type="text" name="categoryName" list="categoryOptions" placeholder="Ex: leds, combustível..." value="'+(editCat ? escapeAttr(editCat.name) : '')+'"></div>' +
@@ -969,10 +972,10 @@
           '<div class="field"><label>Nubank — Entrada (R$)</label><input type="text" inputmode="decimal" name="nubank_entrada" placeholder="0,00" value="'+(editing && contaOf(editing)==='fc2' && editing.type==='entrada' ? fmtNumberBR(editing.value) : '')+'"></div>' +
         '</div>' +
         '<div class="btn-row">' +
-          '<button type="submit" class="btn btn-primary">'+(editing ? 'Salvar alterações' : 'Adicionar lançamento')+'</button>' +
+          '<button type="button" class="btn btn-primary" id="submitEntryBtn">'+(editing ? 'Salvar alterações' : 'Adicionar lançamento')+'</button>' +
           (editing ? '<button type="button" class="btn btn-ghost" id="cancelEdit">Cancelar</button>' : '') +
         '</div>' +
-      '</form>' +
+      '</div>' +
     '</div>');
 
     var baseList = state.filters.data
@@ -1071,12 +1074,12 @@
     '<div class="panel">' +
       '<div class="panel-title">Novo grupo</div>' +
       '<div class="panel-sub">Você normalmente nem precisa vir aqui — basta digitar o nome do grupo direto em Lançamentos que ele é criado sozinho. Use esta tela para renomear, desativar ou criar um grupo por antecipação.</div>' +
-      '<form id="catForm" novalidate>' +
+      '<div id="catForm">' +
         '<div class="form-row">' +
           '<div class="field grow"><label>Nome do grupo</label><input type="text" name="name" placeholder="Ex: Terapias, Combustível, Manutenção..."></div>' +
         '</div>' +
-        '<button type="submit" class="btn btn-primary">Adicionar grupo</button>' +
-      '</form>' +
+        '<button type="button" class="btn btn-primary" id="submitCatBtn">Adicionar grupo</button>' +
+      '</div>' +
     '</div>')) +
     '<div class="panel">' +
       '<div class="panel-title">Todos os grupos</div>' +
@@ -1309,13 +1312,15 @@
     }
     var entryForm = document.getElementById('entryForm');
     if (entryForm){
-      entryForm.addEventListener('submit', function(ev){
-        ev.preventDefault();
-        var fd = new FormData(entryForm);
-        var dateVal = fd.get('date');
-        var categoryName = (fd.get('categoryName') || '').trim();
-        var descriptionVal = (fd.get('description') || '').trim();
-        var responsavelVal = (fd.get('responsavel') || '').trim();
+      function fieldVal(name){
+        var el = entryForm.querySelector('[name="'+name+'"]');
+        return el ? el.value : '';
+      }
+      function submitEntry(){
+        var dateVal = fieldVal('date');
+        var categoryName = fieldVal('categoryName').trim();
+        var descriptionVal = fieldVal('description').trim();
+        var responsavelVal = fieldVal('responsavel').trim();
         if (!dateVal){ appAlert('Preencha a data do lançamento.'); return; }
         if (!categoryName){ appAlert('Preencha o grupo do lançamento.'); return; }
         if (!descriptionVal){ appAlert('Preencha a descrição do lançamento.'); return; }
@@ -1328,7 +1333,7 @@
         ];
         var filled = [];
         fields.forEach(function(f){
-          var raw = fd.get(f.name);
+          var raw = fieldVal(f.name);
           var val = parseBRNumber(raw);
           if (!isNaN(val) && val > 0) filled.push({conta:f.conta, type:f.type, value: val});
         });
@@ -1358,6 +1363,15 @@
         state.editingEntryId = null;
         render(); // mostra na hora — salvar não trava a tela
         saveAppData();
+      }
+      var submitEntryBtn = document.getElementById('submitEntryBtn');
+      if (submitEntryBtn) submitEntryBtn.addEventListener('click', submitEntry);
+      // Enter em qualquer campo de texto também confirma o lançamento.
+      entryForm.addEventListener('keydown', function(ev){
+        if (ev.key === 'Enter' && ev.target.tagName === 'INPUT'){
+          ev.preventDefault();
+          submitEntry();
+        }
       });
       var cancelBtn = document.getElementById('cancelEdit');
       if (cancelBtn) cancelBtn.addEventListener('click', function(){ state.editingEntryId = null; render(); });
@@ -1448,16 +1462,22 @@
 
     var catForm = document.getElementById('catForm');
     if (catForm){
-      catForm.addEventListener('submit', function(ev){
-        ev.preventDefault();
-        var fd = new FormData(catForm);
-        var name = (fd.get('name') || '').trim();
+      function submitCat(){
+        var input = catForm.querySelector('[name="name"]');
+        var name = input ? input.value.trim() : '';
         if (!name) { appAlert('Preencha o nome do grupo.'); return; }
         if (findCategoryByName(name)) { appAlert('Já existe um grupo com esse nome.'); return; }
         state.categories.push({id: uid('cat'), name: name, active:true, createdAt: Date.now()});
-        catForm.reset();
         render();
         saveAppData();
+      }
+      var submitCatBtn = document.getElementById('submitCatBtn');
+      if (submitCatBtn) submitCatBtn.addEventListener('click', submitCat);
+      catForm.addEventListener('keydown', function(ev){
+        if (ev.key === 'Enter' && ev.target.tagName === 'INPUT'){
+          ev.preventDefault();
+          submitCat();
+        }
       });
     }
     document.querySelectorAll('[data-toggle-cat]').forEach(function(btn){
@@ -1559,7 +1579,7 @@
     ev.target.value = '';
   });
   document.getElementById('resetBtn').addEventListener('click', function(){
-    appConfirm('Isso vai apagar todos os lançamentos e categorias salvos neste artefato. Continuar?', function(){
+    appConfirm('Isso vai apagar todos os lançamentos e categorias salvos no banco de dados. Continuar?', function(){
       state.categories = seedCategories();
       state.entries = [];
       render();
