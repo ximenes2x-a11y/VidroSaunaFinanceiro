@@ -1,0 +1,1598 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vidro Sauna - Controle Financeiro</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#17140F;
+    --bg-soft:#1D1912;
+    --surface:#241F17;
+    --surface-raised:#2B241A;
+    --border:#3A3226;
+    --border-soft:#2E2820;
+    --text:#F3ECDF;
+    --text-muted:#B0A290;
+    --text-faint:#7A6E5C;
+    --positive:#83A374;
+    --positive-soft:rgba(131,163,116,0.14);
+    --negative:#C1624A;
+    --negative-soft:rgba(193,98,74,0.14);
+    --accent:#CBA531;
+    --accent-soft:rgba(203,165,49,0.14);
+    --radius-sm:4px;
+    --radius-md:8px;
+    --serif:'Fraunces', serif;
+    --sans:'Inter', sans-serif;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:var(--sans);
+    font-variant-numeric:tabular-nums;
+    -webkit-font-smoothing:antialiased;
+  }
+  button{font-family:inherit;cursor:pointer;}
+  input,select{font-family:inherit;}
+
+  .app{
+    display:flex;
+    min-height:100vh;
+  }
+
+  /* ---------- Sidebar ---------- */
+  .sidebar{
+    width:236px;
+    flex-shrink:0;
+    background:var(--bg-soft);
+    border-right:1px solid var(--border-soft);
+    display:flex;
+    flex-direction:column;
+    padding:28px 18px;
+    position:sticky;
+    top:0;
+    height:100vh;
+  }
+  .brand{
+    font-family:var(--serif);
+    font-size:22px;
+    font-weight:600;
+    letter-spacing:0.01em;
+    margin-bottom:2px;
+    display:flex;
+    align-items:baseline;
+    gap:8px;
+  }
+  .brand .ember{
+    width:8px;height:8px;border-radius:50%;
+    background:var(--accent);
+    display:inline-block;
+    transform:translateY(-2px);
+  }
+  .brand-sub{
+    font-size:12px;
+    color:var(--text-faint);
+    margin-bottom:32px;
+  }
+  nav{display:flex;flex-direction:column;gap:2px;}
+  .nav-item{
+    background:none;
+    border:none;
+    color:var(--text-muted);
+    text-align:left;
+    padding:10px 12px;
+    border-radius:var(--radius-sm);
+    font-size:14.5px;
+    display:flex;
+    align-items:center;
+    gap:10px;
+    transition:background .15s ease, color .15s ease;
+  }
+  .nav-item:hover{background:var(--surface);color:var(--text);}
+  .nav-item.active{background:var(--surface-raised);color:var(--text);font-weight:600;}
+  .nav-item .dot{
+    width:5px;height:5px;border-radius:50%;
+    background:var(--border);
+    flex-shrink:0;
+  }
+  .nav-item.active .dot{background:var(--accent);}
+
+  .sidebar-footer{
+    margin-top:auto;
+    padding-top:18px;
+    border-top:1px solid var(--border-soft);
+  }
+  .save-note{
+    font-size:11.5px;
+    color:var(--text-faint);
+    line-height:1.5;
+    margin-bottom:10px;
+  }
+  .save-note strong{color:var(--text-muted);font-weight:500;}
+  .reset-btn{
+    background:none;border:1px solid var(--border);color:var(--text-faint);
+    font-size:11.5px;padding:6px 10px;border-radius:var(--radius-sm);
+    width:100%;
+  }
+  .reset-btn:hover{color:var(--negative);border-color:var(--negative);}
+
+  /* ---------- Main ---------- */
+  .content{flex:1;padding:32px 40px 60px;min-width:0;}
+  .topbar{
+    display:flex;justify-content:space-between;align-items:flex-start;
+    margin-bottom:28px;flex-wrap:wrap;gap:16px;
+  }
+  .view-title{font-family:var(--serif);font-size:28px;font-weight:600;}
+  .view-desc{color:var(--text-muted);font-size:13.5px;margin-top:4px;max-width:440px;line-height:1.5;}
+
+  .month-picker{
+    display:flex;align-items:center;gap:10px;
+    background:var(--surface);border:1px solid var(--border-soft);
+    padding:6px 8px;border-radius:var(--radius-md);
+  }
+  .month-picker button{
+    background:none;border:none;color:var(--text-muted);
+    width:26px;height:26px;border-radius:var(--radius-sm);
+    font-size:15px;display:flex;align-items:center;justify-content:center;
+  }
+  .month-picker button:hover{background:var(--surface-raised);color:var(--text);}
+  .month-label{font-size:14px;font-weight:600;min-width:132px;text-align:center;text-transform:capitalize;}
+
+  /* ---------- Cards ---------- */
+  .stat-row{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:28px;}
+  .stat-card{
+    background:var(--surface);border:1px solid var(--border-soft);
+    border-radius:var(--radius-md);padding:18px 20px;
+  }
+  .stat-label{font-size:12px;color:var(--text-faint);margin-bottom:8px;}
+  .stat-value{font-family:var(--serif);font-size:26px;font-weight:600;}
+  .stat-value.positive{color:var(--positive);}
+  .stat-value.negative{color:var(--negative);}
+
+  .panel{
+    background:var(--surface);border:1px solid var(--border-soft);
+    border-radius:var(--radius-md);padding:22px 24px;margin-bottom:20px;
+  }
+  .panel-title{font-family:var(--serif);font-size:16px;font-weight:600;margin-bottom:4px;}
+  .panel-sub{font-size:12px;color:var(--text-faint);margin-bottom:18px;}
+
+  .two-col{display:grid;grid-template-columns:1.1fr 0.9fr;gap:16px;align-items:start;}
+
+  /* ---------- Bars ---------- */
+  .bar-row{display:flex;align-items:center;gap:10px;margin-bottom:11px;}
+  .bar-row:last-child{margin-bottom:0;}
+  .bar-label{width:120px;flex-shrink:0;font-size:12.5px;color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .bar-track{flex:1;height:8px;background:var(--bg-soft);border-radius:4px;overflow:hidden;}
+  .bar-fill{height:100%;border-radius:4px;}
+  .bar-pct{width:48px;flex-shrink:0;font-size:12px;color:var(--text-faint);text-align:right;}
+  .bar-value{width:84px;flex-shrink:0;font-size:12px;color:var(--text-muted);text-align:right;font-variant-numeric:tabular-nums;}
+
+  .empty-state{
+    padding:34px 20px;text-align:center;color:var(--text-faint);font-size:13px;
+    border:1px dashed var(--border);border-radius:var(--radius-md);
+  }
+
+  /* ---------- Modal (substitui confirm/alert/prompt nativos) ---------- */
+  .modal-overlay{
+    position:fixed;inset:0;background:rgba(10,8,5,0.6);
+    display:flex;align-items:center;justify-content:center;
+    z-index:9999;padding:20px;
+  }
+  .modal-box{
+    background:var(--surface-raised);border:1px solid var(--border);
+    border-radius:var(--radius-md);padding:22px;max-width:380px;width:100%;
+    box-shadow:0 12px 32px rgba(0,0,0,0.4);
+  }
+  .modal-message{font-size:13.5px;line-height:1.5;color:var(--text);margin-bottom:16px;white-space:pre-line;}
+  .modal-box input{
+    width:100%;background:var(--bg-soft);border:1px solid var(--border);color:var(--text);
+    padding:8px 10px;border-radius:var(--radius-sm);font-size:13.5px;margin-bottom:16px;
+  }
+  .modal-actions{display:flex;justify-content:flex-end;gap:8px;}
+
+  /* ---------- Forms ---------- */
+  .form-row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px;}
+  .field{display:flex;flex-direction:column;gap:5px;}
+  .field label{font-size:11.5px;color:var(--text-faint);}
+  .field input, .field select{
+    background:var(--bg-soft);border:1px solid var(--border);color:var(--text);
+    padding:8px 10px;border-radius:var(--radius-sm);font-size:13.5px;min-width:0;
+  }
+  .field input:focus, .field select:focus{outline:none;border-color:var(--accent);}
+  .field.grow{flex:1;min-width:160px;}
+  .paste-area{
+    width:100%;min-height:110px;background:var(--bg-soft);border:1px solid var(--border);
+    color:var(--text);padding:10px;border-radius:var(--radius-sm);font-size:12.5px;
+    font-family:monospace;resize:vertical;margin-bottom:10px;
+  }
+  .paste-area:focus{outline:none;border-color:var(--accent);}
+  .paste-result{
+    font-size:12.5px;color:var(--text-muted);margin-top:10px;line-height:1.6;
+    white-space:pre-line;
+  }
+  .chip-row{display:flex;gap:6px;margin-top:6px;flex-wrap:wrap;}
+  .chip{
+    background:var(--bg-soft);border:1px solid var(--border);color:var(--text-muted);
+    padding:4px 12px;border-radius:20px;font-size:12px;
+  }
+  .chip:hover{border-color:var(--text-faint);color:var(--text);}
+  .chip.active{background:var(--accent-soft);border-color:var(--accent);color:var(--accent);font-weight:600;}
+  .btn{
+    border:none;border-radius:var(--radius-sm);padding:9px 16px;font-size:13.5px;font-weight:600;
+  }
+  .btn-primary{background:var(--accent);color:#20180A;}
+  .btn-primary:hover{filter:brightness(1.08);}
+  .btn-ghost{background:none;border:1px solid var(--border);color:var(--text-muted);}
+  .btn-ghost:hover{color:var(--text);border-color:var(--text-faint);}
+  .btn-row{display:flex;gap:8px;align-items:flex-end;}
+
+  /* ---------- Table / list ---------- */
+  table{width:100%;border-collapse:collapse;}
+  th{
+    text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.04em;
+    color:var(--text-faint);font-weight:600;padding:0 10px 10px;border-bottom:1px solid var(--border-soft);
+  }
+  td{padding:11px 10px;font-size:13.5px;border-bottom:1px solid var(--border-soft);vertical-align:middle;}
+  tr:last-child td{border-bottom:none;}
+  td.num{text-align:right;font-variant-numeric:tabular-nums;}
+  .badge{
+    display:inline-block;font-size:11px;padding:3px 8px;border-radius:20px;font-weight:600;
+  }
+  .badge.entrada{background:var(--positive-soft);color:var(--positive);}
+  .badge.saida{background:var(--negative-soft);color:var(--negative);}
+  .badge.inactive{background:var(--surface-raised);color:var(--text-faint);}
+  .row-actions{display:flex;gap:6px;justify-content:flex-end;}
+  .icon-btn{
+    background:none;border:1px solid var(--border);color:var(--text-faint);
+    width:26px;height:26px;border-radius:var(--radius-sm);font-size:12px;
+    display:inline-flex;align-items:center;justify-content:center;
+  }
+  .icon-btn:hover{color:var(--text);border-color:var(--text-faint);}
+  .icon-btn.danger:hover{color:var(--negative);border-color:var(--negative);}
+
+  /* ---------- Categorias ---------- */
+  .cat-group-title{font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--text-faint);margin:22px 0 10px;}
+  .cat-group-title:first-child{margin-top:0;}
+  .cat-item{
+    display:flex;align-items:center;gap:12px;padding:10px 12px;
+    border:1px solid var(--border-soft);border-radius:var(--radius-sm);margin-bottom:8px;
+    background:var(--bg-soft);
+  }
+  .cat-item.is-inactive{opacity:.55;}
+  .cat-swatch{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
+  .cat-name{flex:1;font-size:13.5px;}
+  .cat-name input{width:100%;}
+
+  /* ---------- Historico ---------- */
+  .month-card{
+    display:flex;align-items:center;gap:18px;padding:16px 18px;
+    border:1px solid var(--border-soft);border-radius:var(--radius-md);margin-bottom:10px;
+    background:var(--surface);cursor:pointer;transition:border-color .15s ease;
+  }
+  .month-card:hover{border-color:var(--text-faint);}
+  .month-card-name{font-family:var(--serif);font-size:15px;font-weight:600;width:150px;flex-shrink:0;text-transform:capitalize;}
+  .month-card-stats{display:flex;gap:26px;flex:1;flex-wrap:wrap;}
+  .mc-stat{min-width:90px;}
+  .mc-stat-label{font-size:10.5px;color:var(--text-faint);margin-bottom:2px;}
+  .mc-stat-value{font-size:14px;font-weight:600;}
+
+  @media (max-width: 760px){
+    .app{flex-direction:column;}
+    .sidebar{
+      width:100%;height:auto;position:relative;
+      flex-direction:row;align-items:center;padding:14px 16px;
+      overflow-x:auto;
+    }
+    .brand-sub, .sidebar-footer{display:none;}
+    nav{flex-direction:row;}
+    .content{padding:22px 18px 50px;}
+    .stat-row{grid-template-columns:1fr;}
+    .two-col{grid-template-columns:1fr;}
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand"><span class="ember"></span>Vidro Sauna</div>
+    <div class="brand-sub">controle financeiro</div>
+    <nav id="nav">
+      <button class="nav-item" data-view="dashboard"><span class="dot"></span>Dashboard</button>
+      <button class="nav-item" data-view="lancamentos"><span class="dot"></span>Lançamentos</button>
+      <button class="nav-item" data-view="categorias"><span class="dot"></span>Categorias</button>
+      <button class="nav-item" data-view="fluxo"><span class="dot"></span>Fluxo de caixa</button>
+      <button class="nav-item" data-view="historico"><span class="dot"></span>Histórico</button>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="save-note"><strong>Salvo automaticamente</strong><br>os dados ficam guardados neste artefato, associados à sua conta.<br><span id="saveStatus" style="font-weight:600;"></span></div>
+      <button class="reset-btn" id="exportBtn" style="margin-bottom:8px;">Baixar backup (.json)</button>
+      <button class="reset-btn" id="importBtn" style="margin-bottom:8px;">Restaurar backup</button>
+      <input type="file" id="importFileInput" accept=".json" style="display:none;">
+      <button class="reset-btn" id="shareBtn" style="margin-bottom:8px;">Copiar link somente visualização</button>
+      <button class="reset-btn" id="resetBtn">Limpar todos os dados</button>
+    </div>
+  </aside>
+
+  <main class="content">
+    <div class="topbar">
+      <div>
+        <div class="view-title" id="viewTitle">Dashboard</div>
+        <div class="view-desc" id="viewDesc"></div>
+        <div id="readOnlyBanner" style="display:none;margin-top:8px;font-size:12px;color:var(--accent);background:var(--accent-soft);padding:6px 10px;border-radius:4px;">Modo somente visualização — edição desativada nesta cópia do link.</div>
+      </div>
+      <div class="month-picker" id="monthPicker">
+        <button id="prevMonth">‹</button>
+        <div class="month-label" id="monthLabel"></div>
+        <button id="nextMonth">›</button>
+      </div>
+    </div>
+    <section id="viewRoot"></section>
+  </main>
+</div>
+
+<div id="modalRoot"></div>
+
+<script>
+(function(){
+  "use strict";
+
+  // ---------- Palette for category swatches ----------
+  var PALETTE = ['#CBA531','#C1624A','#83A374','#9C7A4A','#C98A5C','#5E8079','#A56B8E','#7C8A4E'];
+  function colorFor(id){
+    var h = 0;
+    for (var i=0;i<id.length;i++){ h = (h*31 + id.charCodeAt(i)) >>> 0; }
+    return PALETTE[h % PALETTE.length];
+  }
+
+  function uid(prefix){
+    return (prefix||'id') + '-' + Date.now().toString(36) + Math.random().toString(36).slice(2,8);
+  }
+
+  function fmtBRL(v){
+    return new Intl.NumberFormat('pt-BR', {style:'currency', currency:'BRL'}).format(v || 0);
+  }
+  // Formata um número pra reaparecer num campo de texto editável, no padrão
+  // brasileiro (vírgula decimal), sem o "R$" na frente.
+  function fmtNumberBR(v){
+    var n = Number(v) || 0;
+    return n.toFixed(2).replace('.', ',');
+  }
+  function fmtMonthLabel(monthKey){
+    var parts = monthKey.split('-');
+    var d = new Date(parseInt(parts[0],10), parseInt(parts[1],10)-1, 1);
+    return new Intl.DateTimeFormat('pt-BR', {month:'long', year:'numeric'}).format(d);
+  }
+  function todayISO(){
+    var d = new Date();
+    var m = String(d.getMonth()+1).padStart(2,'0');
+    var day = String(d.getDate()).padStart(2,'0');
+    return d.getFullYear() + '-' + m + '-' + day;
+  }
+  function currentMonthKey(){
+    return todayISO().slice(0,7);
+  }
+  function shiftMonth(monthKey, delta){
+    var parts = monthKey.split('-').map(Number);
+    var d = new Date(parts[0], parts[1]-1+delta, 1);
+    return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
+  }
+
+  // ---------- State ----------
+  var READ_ONLY = new URLSearchParams(window.location.search).get('modo') === 'visualizacao';
+  var state = {
+    categories: [],
+    entries: [],
+    view: 'dashboard',
+    month: currentMonthKey(),
+    editingEntryId: null,
+    import1Done: false,
+    import2Done: false,
+    import3Done: false,
+    import4Done: false,
+    import5Done: false,
+    pasteResultMsg: '',
+    filters: {data: '', grupo: '', descricao: ''}
+  };
+
+  function seedCategories(){
+    // Categorias não têm mais um "tipo" fixo: o mesmo nome pode aparecer tanto
+    // em entradas quanto em saídas. O tipo é decidido linha a linha, conforme
+    // o valor for digitado na coluna Entrada ou na coluna Saída.
+    return [
+      {id: uid('cat'), name:'Serviços', active:true, createdAt: Date.now()},
+      {id: uid('cat'), name:'Produtos', active:true, createdAt: Date.now()},
+      {id: uid('cat'), name:'Aluguel', active:true, createdAt: Date.now()},
+      {id: uid('cat'), name:'Equipe', active:true, createdAt: Date.now()},
+      {id: uid('cat'), name:'Manutenção', active:true, createdAt: Date.now()},
+      {id: uid('cat'), name:'Marketing', active:true, createdAt: Date.now()},
+      {id: uid('cat'), name:'Outros', active:true, createdAt: Date.now()}
+    ];
+  }
+  function findCategoryByName(name){
+    var norm = name.trim().toLowerCase();
+    return state.categories.find(function(c){ return c.name.trim().toLowerCase() === norm; });
+  }
+  // Finds an existing group by name (case-insensitive) or creates a new one on
+  // the spot. Reactivates it automatically if it had been deactivated, since
+  // typing it again means it's back in use.
+  function resolveCategory(name){
+    var existing = findCategoryByName(name);
+    if (existing){
+      if (!existing.active) existing.active = true;
+      return existing;
+    }
+    var created = {id: uid('cat'), name: name.trim(), active:true, createdAt: Date.now()};
+    state.categories.push(created);
+    return created;
+  }
+
+  // ---------- Importação da planilha antiga (01–04/09/26) ----------
+  // Todos os lançamentos abaixo eram da conta Santander (a Nubank não tinha
+  // movimentação nesse período na planilha original).
+  var IMPORT_BATCH_1 = [
+    ['2026-09-01','Tuka','Marketplace 6 blocos de distrib','Elétrica','saida',170.22],
+    ['2026-09-01','Tuka','Marketplace 4 jogos rep dobrad','Ferragens','saida',136.00],
+    ['2026-09-01','Tuka','Marketplace 10 contatoras','Elétrica','saida',549.80],
+    ['2026-09-01','Tuka','Raimundo dos Santos (combustível)','Manutenção','saida',94.75],
+    ['2026-09-01','Tuka','Sodramar','Máquinas','saida',8543.82],
+    ['2026-09-01','Tuka','Metal Com mang. P/ ar/bicos','Ferramenta','saida',227.00],
+    ['2026-09-01','Tuka','Marketplace 5 blocos de emenda','Elétrica','saida',60.99],
+    ['2026-09-01','Tuka','Localiza (montana) até 09/09','Manutenção','saida',1439.42],
+    ['2026-09-01','Tuka','Antonio Ferreira (Lalamove)','Máquinas','saida',170.00],
+    ['2026-09-01','Tuka','Marketplace 15 litros óleo mineral','Óleo','saida',389.70],
+    ['2026-09-01','Tuka','Marketplace 10 fontes','Elétrica','saida',159.99],
+    ['2026-09-01','Tuka','Raimundo dos Santos (combustível)','Manutenção','saida',131.02],
+    ['2026-09-01','Tuka','Luiz Cleciano','Mão de obra','saida',1578.00],
+    ['2026-09-01','Tuka','Geraldo Santana','Mão de obra','saida',1566.00],
+    ['2026-09-01','Sauna','Sauna','Sauna','entrada',16750.00],
+    ['2026-09-02','Sauna','Sauna','Sauna','entrada',16542.70],
+    ['2026-09-02','Tuka','Marketplace 500 paraf auto brocante','Diversos','saida',75.61],
+    ['2026-09-02','Tuka','Sodramar','Máquinas','saida',4608.59],
+    ['2026-09-02','Tuka','Engitemper','Vidros','saida',2488.00],
+    ['2026-09-02','Tuka','Marketplace alicate crimpador','Ferramenta','saida',69.91],
+    ['2026-09-02','Tuka','Sodramar','Máquinas','saida',5396.97],
+    ['2026-09-02','Tuka','Antonio Ferreira (Lalamove)','Máquinas','saida',170.00],
+    ['2026-09-02','Tuka','Raimundo dos Santos (combustível)','Manutenção','saida',126.96],
+    ['2026-09-02','Tuka','Marketplace 30m cabo 10mm','Elétrica','saida',370.56],
+    ['2026-09-02','Tuka','Marketplace 20 abraçadeiras inox','Diversos','saida',77.80],
+    ['2026-09-02','Tuka','Marketplace 10m tubo saída de vapor','Tubos','saida',455.94],
+    ['2026-09-02','Tuka','Geraldo Santana','Manutenção','saida',703.00],
+    ['2026-09-02','Tuka','Luiz Cleciano','Mão de obra','saida',1000.00],
+    ['2026-09-02','Tuka','Robson Jose','Mão de obra','saida',1500.00],
+    ['2026-09-02','Tuka','Raimundo dos Santos','Caixa viagem','saida',700.00],
+    ['2026-09-02','Tuka','Facebook','Divulgação','saida',300.00],
+    ['2026-09-02','Tuka','Raimundo dos Santos 1 diária','Manutenção','saida',300.00],
+    ['2026-09-03','Rendimento','Rendimento','Rendimento','entrada',0.02],
+    ['2026-09-03','Tuka','Raimundo dos Santos','Caixa viagem','saida',500.00],
+    ['2026-09-03','Tuka','Marketplace 5 hastes de alum','Ferragens','saida',33.15],
+    ['2026-09-03','Tuka','Profeng Glass mesa da serra','Ferramenta','saida',1547.50],
+    ['2026-09-03','Tuka','Gilberto (celular Marcio/serra)','Ferramenta','saida',3288.51],
+    ['2026-09-03','Tuka','Localiza HB120','Transporte','saida',593.06],
+    ['2026-09-03','Tuka','Robson Jose','Diversos','saida',135.54],
+    ['2026-09-03','Tuka','Luiz Cleciano','Mão de obra','saida',1000.00],
+    ['2026-09-03','Tuka','Portagua 1 luva de 1/2','Hidráulica','saida',1.82],
+    ['2026-09-03','Tuka','Ryan de Campos Salafia','Comissão','saida',9605.00],
+    ['2026-09-03','Tuka','Raimundo dos Santos','Caixa','saida',700.00],
+    ['2026-09-03','Rendimento','Rendimento','Rendimento','entrada',0.26],
+    ['2026-09-04','Sauna','Sauna','Sauna','entrada',16246.80],
+    ['2026-09-04','Tuka','RS Aluminio','Alumínio','saida',1770.16],
+    ['2026-09-04','Tuka','Facebook','Divulgação','saida',300.00],
+    ['2026-09-04','Sauna','André Keunecke (estorno cartão)','Sauna','saida',17083.26],
+    ['2026-09-04','Sauna','Sauna','Sauna','entrada',7900.00],
+    ['2026-09-04','Tuka','Marketplace 10 blocos de distr','Elétrica','saida',283.70],
+    ['2026-09-04','Tuka','Marketplace 100 conectores wagos 2 vias','Elétrica','saida',151.04],
+    ['2026-09-04','Tuka','Engi Temper','Vidros','saida',7500.00],
+    ['2026-09-04','Tuka','Geraldo Santana','Mão de obra','saida',1623.00],
+    ['2026-09-04','Marketplace','Estorno Marketplace','Estorno','entrada',34.99],
+    ['2026-09-04','Tuka','Wesley Souza Assis','Mão de obra','saida',1500.00],
+    ['2026-09-04','Tuka','Antonio Carlos Nunes','Mão de obra','saida',720.00]
+  ];
+  function combineDesc(origem, desc){
+    if (!origem) return desc;
+    if (desc.toLowerCase().indexOf(origem.toLowerCase()) !== -1) return desc;
+    return origem + ' — ' + desc;
+  }
+  // Limpeza: descrições antigas ficaram com "Origem — " colado na frente (de
+  // antes de existir o campo próprio "Quem fez"). Isso fazia a descrição
+  // nunca bater com o texto colado da planilha, então o app não reconhecia
+  // linhas repetidas. Aqui a gente move esse prefixo pro campo certo, uma
+  // única vez.
+  function runCleanupDescriptions(){
+    state.entries.forEach(function(e){
+      if (e.responsavel) return;
+      var m = e.description.match(/^(.+?) — (.+)$/);
+      if (m){
+        e.responsavel = m[1];
+        e.description = m[2];
+      }
+    });
+    state.import5Done = true;
+  }
+  // Assinatura única de um lançamento, usada só pra nunca importar a mesma
+  // linha duas vezes, mesmo que a rotina rode mais de uma vez.
+  function entrySignature(e){
+    return [e.date, e.conta, e.type, e.value, e.description].join('|');
+  }
+  function entryAlreadyImported(sig){
+    return state.entries.some(function(e){ return entrySignature(e) === sig; });
+  }
+
+  // ---------- Colar da planilha (LibreOffice) ----------
+  function parseBRNumber(str){
+    if (!str) return NaN;
+    var s = String(str).replace(/R\$/gi, '').trim();
+    if (!s) return NaN;
+    s = s.replace(/\./g, '').replace(',', '.');
+    var n = parseFloat(s);
+    return n;
+  }
+  function parseBRDate(str){
+    if (!str) return null;
+    var s = String(str).trim();
+    var m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/);
+    if (!m) return null;
+    var d = parseInt(m[1], 10), mo = parseInt(m[2], 10), y = parseInt(m[3], 10);
+    if (y < 100) y += 2000;
+    if (mo < 1 || mo > 12 || d < 1 || d > 31) return null;
+    return y + '-' + String(mo).padStart(2,'0') + '-' + String(d).padStart(2,'0');
+  }
+  // Colunas esperadas, na ordem: A Data, B Quem fez, C Descrição, D Grupo,
+  // E Entrada Santander, F Saída Santander, G (ignorada), H Entrada Nubank,
+  // I Saída Nubank, J/K (ignoradas).
+  function parsePastedSheet(text){
+    var lines = text.split(/\r?\n/).map(function(l){ return l.trim(); }).filter(function(l){ return l.length > 0; });
+    var added = 0, skippedNoValue = 0, skippedDuplicate = 0, skippedBadRow = 0;
+    lines.forEach(function(line){
+      var cols = line.split('\t');
+      if (cols.length < 4){ skippedBadRow++; return; }
+      var date = parseBRDate(cols[0]);
+      var quemFez = (cols[1] || '').trim();
+      var desc = (cols[2] || '').trim();
+      var grupo = (cols[3] || '').trim();
+      if (!date || !desc || !grupo){ skippedBadRow++; return; }
+
+      var candidates = [
+        {conta:'fc1', type:'entrada', raw: cols[4]},
+        {conta:'fc1', type:'saida',   raw: cols[5]},
+        {conta:'fc2', type:'entrada', raw: cols[7]},
+        {conta:'fc2', type:'saida',   raw: cols[8]}
+      ];
+      var any = false;
+      candidates.forEach(function(c){
+        var value = parseBRNumber(c.raw);
+        if (isNaN(value) || value <= 0) return;
+        any = true;
+        var sig = [date, c.conta, c.type, value, desc].join('|');
+        if (entryAlreadyImported(sig)){ skippedDuplicate++; return; }
+        var cat = resolveCategory(grupo);
+        state.entries.push({
+          id: uid('entry'), date: date, type: c.type, conta: c.conta,
+          categoryId: cat.id, description: desc, value: value, responsavel: quemFez
+        });
+        added++;
+      });
+      if (!any) skippedNoValue++;
+    });
+    return {added: added, skippedNoValue: skippedNoValue, skippedDuplicate: skippedDuplicate, skippedBadRow: skippedBadRow};
+  }
+
+  async function runImportBatch1(){
+    var added = false;
+    IMPORT_BATCH_1.forEach(function(row){
+      var date = row[0], origem = row[1], desc = row[2], catName = row[3], type = row[4], value = row[5];
+      var description = combineDesc(origem, desc);
+      var sig = [date, 'fc1', type, value, description].join('|');
+      if (entryAlreadyImported(sig)) return;
+      var cat = resolveCategory(catName);
+      state.entries.push({
+        id: uid('entry'), date: date, type: type, conta: 'fc1',
+        categoryId: cat.id, description: description, value: value
+      });
+      added = true;
+    });
+    state.import1Done = true;
+  }
+
+  // Saldo que sobrou de agosto, lançado como o primeiro registro de setembro
+  // em cada conta, para o fluxo de caixa já começar do valor certo.
+  var IMPORT_BATCH_2 = [
+    ['2026-09-01', 'fc1', 'Saldo anterior', 79222.15],
+    ['2026-09-01', 'fc2', 'Saldo anterior', 209632.00]
+  ];
+  function runImportBatch2(){
+    var cat = resolveCategory('Saldo anterior');
+    IMPORT_BATCH_2.forEach(function(row){
+      var date = row[0], conta = row[1], desc = row[2], value = row[3];
+      var sig = [date, conta, 'entrada', value, desc].join('|');
+      if (entryAlreadyImported(sig)) return;
+      state.entries.push({
+        id: uid('entry'), date: date, type: 'entrada', conta: conta,
+        categoryId: cat.id, description: desc, value: value
+      });
+    });
+    state.import2Done = true;
+  }
+
+  // Lista completa e corrigida da planilha do Santander (substitui tudo que
+  // já existia nessa conta). O Nubank não é tocado por essa rotina.
+  var SANTANDER_OPENING_BALANCE = 79222.15;
+  var IMPORT_BATCH_3 = [
+    ['2026-09-01','Tuka','Marketplace 6 blocos de distrib','Elétrica','saida',170.22],
+    ['2026-09-01','Tuka','Marketplace 4 jogos rep dobrad','Ferragens','saida',136.00],
+    ['2026-09-01','Tuka','Marketplace 10 contatoras','Elétrica','saida',549.80],
+    ['2026-09-01','Tuka','Raimundo dos Santos (combustível)','Manutenção','saida',94.75],
+    ['2026-09-01','Tuka','Sodramar','Máquinas','saida',8543.82],
+    ['2026-09-01','Tuka','Metal Com mang. P/ ar/bicos','Ferramenta','saida',227.00],
+    ['2026-09-01','Tuka','Marketplace 5 blocos de emenda','Elétrica','saida',60.99],
+    ['2026-09-01','Tuka','Localiza (montana) até 09/09','Manutenção','saida',1439.42],
+    ['2026-09-01','Tuka','Antonio Ferreira (Lalamove)','Máquinas','saida',170.00],
+    ['2026-09-01','Tuka','Marketplace 15 litros óleo mineral','Óleo','saida',389.70],
+    ['2026-09-01','Tuka','Marketplace 10 fontes','Elétrica','saida',159.99],
+    ['2026-09-01','Tuka','Raimundo dos Santos (combustível)','Manutenção','saida',131.02],
+    ['2026-09-01','Tuka','Luiz Cleciano','Mão de obra','saida',1578.00],
+    ['2026-09-01','Tuka','Geraldo Santana','Mão de obra','saida',1566.00],
+    ['2026-09-01','Sauna','Sauna','Sauna','entrada',16750.00],
+    ['2026-09-02','Sauna','Sauna','Sauna','entrada',16542.70],
+    ['2026-09-02','Tuka','Marketplace 500 paraf auto brocante','Diversos','saida',75.61],
+    ['2026-09-02','Tuka','Sodramar','Máquinas','saida',4608.59],
+    ['2026-09-02','Tuka','Engitemper','Vidros','saida',2488.00],
+    ['2026-09-02','Tuka','Marketplace alicate crimpador','Ferramenta','saida',69.91],
+    ['2026-09-02','Tuka','Sodramar','Máquinas','saida',5396.97],
+    ['2026-09-02','Tuka','Antonio Ferreira (Lalamove)','Máquinas','saida',170.00],
+    ['2026-09-02','Tuka','Raimundo dos Santos (combustível)','Manutenção','saida',126.96],
+    ['2026-09-02','Tuka','Marketplace 30m cabo 10mm','Elétrica','saida',370.56],
+    ['2026-09-02','Tuka','Marketplace 20 abraçadeiras inox','Diversos','saida',77.80],
+    ['2026-09-02','Tuka','Marketplace 10m tubo saída de vapor','Tubos','saida',455.94],
+    ['2026-09-02','Tuka','Geraldo Santana','Manutenção','saida',703.00],
+    ['2026-09-02','Tuka','Luiz Cleciano','Mão de obra','saida',1000.00],
+    ['2026-09-02','Tuka','Robson Jose','Mão de obra','saida',1500.00],
+    ['2026-09-02','Tuka','Raimundo dos Santos','Caixa viagem','saida',700.00],
+    ['2026-09-02','Tuka','Facebook','Divulgação','saida',300.00],
+    ['2026-09-02','Tuka','Raimundo dos Santos 1 diária','Manutenção','saida',300.00],
+    ['2026-09-03','Rendimento','Rendimento','Rendimento','entrada',0.02],
+    ['2026-09-03','Tuka','Raimundo dos Santos','Caixa viagem','saida',500.00],
+    ['2026-09-03','Tuka','Marketplace 5 hastes de alum','Ferragens','saida',33.15],
+    ['2026-09-03','Tuka','Profeng Glass mesa da serra','Ferramenta','saida',1547.50],
+    ['2026-09-03','Tuka','Gilberto (celular Marcio/serra)','Ferramenta','saida',3288.51],
+    ['2026-09-03','Tuka','Localiza HBI20','Transporte','saida',593.06],
+    ['2026-09-03','Tuka','Robson Jose','Diversos','saida',135.54],
+    ['2026-09-03','Tuka','Luiz Cleciano','Mão de obra','saida',1000.00],
+    ['2026-09-03','Tuka','Portagua 1 luva de 1/2','Hidráulica','saida',1.82],
+    ['2026-09-03','Tuka','Ryan de Campos Salafia','Comissão','saida',9605.00],
+    ['2026-09-03','Tuka','Raimundo dos Santos','Caixa','saida',700.00],
+    ['2026-09-03','Rendimento','Rendimento','Rendimento','entrada',0.26],
+    ['2026-09-04','Sauna','Sauna','Sauna','entrada',16246.80],
+    ['2026-09-04','Tuka','RS Aluminio','Alumínio','saida',1770.16],
+    ['2026-09-04','Tuka','Facebook','Divulgação','saida',300.00],
+    ['2026-09-04','Sauna','André Keunecke (estorno cartão)','Sauna','saida',17083.26],
+    ['2026-09-04','Sauna','Sauna','Sauna','entrada',7900.00],
+    ['2026-09-04','Tuka','Marketplace 10 blocos de distr','Elétrica','saida',283.70],
+    ['2026-09-04','Tuka','Marketplace 100 conectores wagos 2 vias','Elétrica','saida',151.04],
+    ['2026-09-04','Tuka','Engi Temper','Vidros','saida',7500.00],
+    ['2026-09-04','Tuka','Geraldo Santana','Mão de obra','saida',1623.00],
+    ['2026-09-04','Marketplace','Estorno Marketplace','Estorno','entrada',34.99],
+    ['2026-09-04','Tuka','Wesley Souza Assis','Mão de obra','saida',1500.00],
+    ['2026-09-04','Tuka','Antonio Carlos Nunes','Mão de obra','saida',720.00],
+    ['2026-09-04','Tuka','Vitor Alexandre','Mão de obra','saida',600.00],
+    ['2026-09-04','Tuka','Speedglass','Vidros','saida',10173.33],
+    ['2026-09-04','Tuka','Robson Jose','Mão de obra','saida',4960.00],
+    ['2026-09-04','Tuka','Luiz Cleciano','Mão de obra','saida',1000.00],
+    ['2026-09-04','Tuka','Geraldo Santana','Mão de obra','saida',1496.00],
+    ['2026-09-04','Tuka','Fabiana Batista Paz','Comissão','saida',1048.16]
+  ];
+  function runReplaceSantander(){
+    // Remove tudo que hoje está na conta Santander (fc1) — a Nubank (fc2)
+    // não é tocada — e recria a partir da lista corrigida.
+    state.entries = state.entries.filter(function(e){ return contaOf(e) !== 'fc1'; });
+    var openingCat = resolveCategory('Saldo anterior');
+    state.entries.push({
+      id: uid('entry'), date: '2026-09-01', type: 'entrada', conta: 'fc1',
+      categoryId: openingCat.id, description: 'Saldo anterior', value: SANTANDER_OPENING_BALANCE
+    });
+    IMPORT_BATCH_3.forEach(function(row){
+      var date = row[0], origem = row[1], desc = row[2], catName = row[3], type = row[4], value = row[5];
+      var cat = resolveCategory(catName);
+      state.entries.push({
+        id: uid('entry'), date: date, type: type, conta: 'fc1',
+        categoryId: cat.id, description: combineDesc(origem, desc), value: value
+      });
+    });
+    state.import3Done = true;
+  }
+
+  // Lote 4 cancelado: aquela planilha era só um exemplo pra entender o
+  // mapeamento das colunas, não dado real — então em vez de lançar, essa
+  // rotina remove os 3 registros de exemplo, caso já tenham sido gravados.
+  var EXAMPLE_ROWS_TO_REMOVE = [
+    ['2026-09-04', 'entrada', 0.23, 'Rendimento'],
+    ['2026-09-05', 'saida', 500.00, 'Raimundo dos Santos (caixa)'],
+    ['2026-09-05', 'entrada', 13476.40, 'Sauna']
+  ];
+  function runImportBatch4(){
+    var removeSigs = EXAMPLE_ROWS_TO_REMOVE.map(function(row){
+      return [row[0], 'fc1', row[1], row[2], row[3]].join('|');
+    });
+    state.entries = state.entries.filter(function(e){
+      return removeSigs.indexOf(entrySignature(e)) === -1;
+    });
+    state.import4Done = true;
+  }
+
+  // ---------- Storage ----------
+  // Dados compartilhados (shared=true): assim, a pessoa com quem você
+  // compartilhar o link vê os mesmos números que você, em vez de começar do zero.
+  // Tudo (categorias, lançamentos e as flags de importação) fica numa única
+  // chave, pra cada gravação ser UMA chamada só ao servidor — várias chamadas
+  // seguidas (uma por categoria/lançamento) foi o que causava erro de servidor
+  // durante a importação automática.
+  async function loadState(){
+    try{
+      var res = await window.storage.get('appData', true);
+      if (res && res.value){
+        var data = JSON.parse(res.value);
+        state.categories = data.categories || [];
+        state.entries = data.entries || [];
+        state.import1Done = !!data.import1Done;
+        state.import2Done = !!data.import2Done;
+        state.import3Done = !!data.import3Done;
+        state.import4Done = !!data.import4Done;
+        state.import5Done = !!data.import5Done;
+      }
+    }catch(e){ /* sem dados salvos ainda, segue com os valores padrão abaixo */ }
+
+    if (!state.categories || state.categories.length === 0){
+      state.categories = seedCategories();
+    }
+
+    // Importa a planilha antiga e o saldo inicial automaticamente, uma única
+    // vez, sem precisar de clique — e sem duplicar, graças à assinatura acima.
+    var ranSomething = false;
+    if (!READ_ONLY){
+      if (!state.import1Done){ await runImportBatch1(); ranSomething = true; }
+      if (!state.import2Done){ runImportBatch2(); ranSomething = true; }
+      if (!state.import3Done){ runReplaceSantander(); ranSomething = true; }
+      if (!state.import4Done){ runImportBatch4(); ranSomething = true; }
+      if (!state.import5Done){ runCleanupDescriptions(); ranSomething = true; }
+      if (ranSomething) saveAppData(); // não bloqueia a primeira tela
+    }
+  }
+  function setSaveStatus(text, color){
+    var el = document.getElementById('saveStatus');
+    if (el){ el.textContent = text; el.style.color = color || ''; }
+  }
+  async function saveAppData(){
+    if (READ_ONLY) return;
+    setSaveStatus('Salvando...', 'var(--text-faint)');
+    var payload = JSON.stringify({
+      categories: state.categories,
+      entries: state.entries,
+      import1Done: state.import1Done,
+      import2Done: state.import2Done,
+      import3Done: state.import3Done,
+      import4Done: state.import4Done,
+      import5Done: state.import5Done
+    });
+    try{
+      await window.storage.set('appData', payload, true);
+      setSaveStatus('Salvo ✓', 'var(--positive)');
+      setTimeout(function(){ setSaveStatus(''); }, 2500);
+    }catch(e){
+      // Uma nova tentativa costuma resolver erros passageiros do servidor.
+      try{
+        await new Promise(function(r){ setTimeout(r, 800); });
+        await window.storage.set('appData', payload, true);
+        setSaveStatus('Salvo ✓', 'var(--positive)');
+        setTimeout(function(){ setSaveStatus(''); }, 2500);
+      }catch(e2){
+        console.error('Falha ao salvar dados (tentativa dupla)', e2);
+        setSaveStatus('⚠ Não salvou no servidor — baixe um backup', 'var(--negative)');
+      }
+    }
+  }
+  // Mantidos como apelidos, pra não precisar mexer em cada lugar do código
+  // que já chamava essas funções — todos gravam a mesma chave única agora.
+  async function saveCategories(){ return saveAppData(); }
+  async function saveEntries(){ return saveAppData(); }
+  async function saveImportFlag(){ return saveAppData(); }
+
+  // ---------- Derived data ----------
+  var CONTA_LABELS = {fc1: 'Santander', fc2: 'Nubank'};
+  function contaOf(e){ return e.conta || 'fc1'; }
+  function entriesForMonth(monthKey){
+    return state.entries.filter(function(e){ return e.date.slice(0,7) === monthKey; });
+  }
+  function monthTotals(monthKey, conta){
+    var list = entriesForMonth(monthKey);
+    if (conta) list = list.filter(function(e){ return contaOf(e) === conta; });
+    var receita = 0, despesa = 0;
+    list.forEach(function(e){
+      if (e.type === 'entrada') receita += Number(e.value);
+      else if (e.type === 'saida') despesa += Number(e.value);
+    });
+    return {receita: receita, despesa: despesa, resultado: receita - despesa, count: list.length};
+  }
+  function categoryById(id){
+    return state.categories.find(function(c){ return c.id === id; });
+  }
+  function categoryBreakdown(monthKey, type){
+    var list = entriesForMonth(monthKey).filter(function(e){ return e.type === type; });
+    var total = list.reduce(function(s,e){ return s + Number(e.value); }, 0);
+    var byCat = {};
+    list.forEach(function(e){
+      byCat[e.categoryId] = (byCat[e.categoryId] || 0) + Number(e.value);
+    });
+    var rows = Object.keys(byCat).map(function(catId){
+      var cat = categoryById(catId);
+      return {
+        id: catId,
+        name: cat ? cat.name : 'Categoria removida',
+        value: byCat[catId],
+        pct: total > 0 ? (byCat[catId] / total * 100) : 0
+      };
+    });
+    rows.sort(function(a,b){ return b.value - a.value; });
+    return {rows: rows, total: total};
+  }
+  function allMonthKeys(){
+    var set = {};
+    state.entries.forEach(function(e){ set[e.date.slice(0,7)] = true; });
+    set[state.month] = true;
+    var keys = Object.keys(set);
+    keys.sort();
+    return keys;
+  }
+
+  // ---------- Rendering shell ----------
+  var viewMeta = {
+    dashboard: {title:'Dashboard', desc:'Receita, despesa e resultado do mês, com o peso de cada grupo calculado automaticamente.'},
+    lancamentos: {title:'Lançamentos', desc:'Digite direto na coluna Entrada ou Saída. O grupo é criado sozinho a partir do que você digitar.'},
+    categorias: {title:'Categorias', desc:'Os grupos são criados automaticamente ao lançar. Aqui você só renomeia ou desativa sem apagar o histórico.'},
+    fluxo: {title:'Fluxo de caixa', desc:'Santander, Nubank e o total das duas contas somadas, mês a mês.'},
+    historico: {title:'Histórico mensal', desc:'Todos os meses já lançados, para comparar a evolução do negócio.'}
+  };
+
+  function setView(view){
+    state.view = view;
+    state.editingEntryId = null;
+    document.querySelectorAll('.nav-item').forEach(function(btn){
+      btn.classList.toggle('active', btn.dataset.view === view);
+    });
+    var meta = viewMeta[view];
+    document.getElementById('viewTitle').textContent = meta.title;
+    document.getElementById('viewDesc').textContent = meta.desc;
+    document.getElementById('monthPicker').style.display = (view === 'historico') ? 'none' : 'flex';
+    render();
+  }
+
+  function render(){
+    document.getElementById('monthLabel').textContent = fmtMonthLabel(state.month);
+    var root = document.getElementById('viewRoot');
+    if (state.view === 'dashboard') root.innerHTML = renderDashboard();
+    else if (state.view === 'lancamentos') root.innerHTML = renderLancamentos();
+    else if (state.view === 'categorias') root.innerHTML = renderCategorias();
+    else if (state.view === 'fluxo') root.innerHTML = renderFluxo();
+    else if (state.view === 'historico') root.innerHTML = renderHistorico();
+    attachViewHandlers();
+  }
+
+  // ---------- Dashboard ----------
+  function renderDashboard(){
+    var t = monthTotals(state.month);
+    var despesaBk = categoryBreakdown(state.month, 'saida');
+    var receitaBk = categoryBreakdown(state.month, 'entrada');
+
+    function barsHtml(bk, color){
+      if (bk.rows.length === 0){
+        return '<div class="empty-state">Nenhum lançamento neste grupo ainda.</div>';
+      }
+      return bk.rows.map(function(r){
+        return '<div class="bar-row">' +
+          '<div class="bar-label" title="'+escapeHtml(r.name)+'">'+escapeHtml(r.name)+'</div>' +
+          '<div class="bar-track"><div class="bar-fill" style="width:'+r.pct.toFixed(1)+'%;background:'+color+'"></div></div>' +
+          '<div class="bar-value">'+fmtBRL(r.value)+'</div>' +
+          '<div class="bar-pct">'+r.pct.toFixed(1)+'%</div>' +
+        '</div>';
+      }).join('');
+    }
+
+    return '' +
+    '<div class="stat-row">' +
+      '<div class="stat-card"><div class="stat-label">Receita do mês</div><div class="stat-value positive">'+fmtBRL(t.receita)+'</div></div>' +
+      '<div class="stat-card"><div class="stat-label">Despesa do mês</div><div class="stat-value negative">'+fmtBRL(t.despesa)+'</div></div>' +
+      '<div class="stat-card"><div class="stat-label">Resultado</div><div class="stat-value '+(t.resultado>=0?'positive':'negative')+'">'+fmtBRL(t.resultado)+'</div></div>' +
+    '</div>' +
+    '<div class="two-col">' +
+      '<div class="panel">' +
+        '<div class="panel-title">Despesas por grupo</div>' +
+        '<div class="panel-sub">Percentual recalculado automaticamente a cada lançamento.</div>' +
+        barsHtml(despesaBk, 'var(--negative)') +
+      '</div>' +
+      '<div class="panel">' +
+        '<div class="panel-title">Receitas por grupo</div>' +
+        '<div class="panel-sub">'+ (receitaBk.total>0 ? fmtBRL(receitaBk.total)+' no mês' : 'Sem receita registrada ainda') +'</div>' +
+        barsHtml(receitaBk, 'var(--positive)') +
+      '</div>' +
+    '</div>' +
+    (t.count === 0 ? '<div class="empty-state">Nenhum lançamento em '+fmtMonthLabel(state.month)+'. Vá em <strong>Lançamentos</strong> para adicionar o primeiro.</div>' : '');
+  }
+
+  // ---------- Lançamentos ----------
+  function renderLancamentos(){
+    var editing = state.editingEntryId ? state.entries.find(function(e){ return e.id === state.editingEntryId; }) : null;
+    var editCat = editing ? categoryById(editing.categoryId) : null;
+
+    var pasteHtml = READ_ONLY ? '' : ('' +
+    '<div class="panel">' +
+      '<div class="panel-title">Colar da planilha</div>' +
+      '<div class="panel-sub">Copie as linhas do LibreOffice (colunas A até K, na ordem: Data, Quem fez, Descrição, Grupo, Entrada Santander, Saída Santander, Resultado, Entrada Nubank, Saída Nubank, Resultado, Total) e cole aqui. As colunas de resultado são ignoradas — só o que tiver valor em Entrada/Saída vira lançamento novo.</div>' +
+      '<textarea class="paste-area" id="pasteArea" placeholder="Cole aqui as linhas copiadas do LibreOffice..."></textarea>' +
+      '<button type="button" class="btn btn-primary" id="pasteBtn">Processar planilha colada</button>' +
+      (state.pasteResultMsg ? '<div class="paste-result">'+escapeHtml(state.pasteResultMsg)+'</div>' : '<div class="paste-result" id="pasteResult"></div>') +
+    '</div>');
+
+    var datalistOptions = state.categories
+      .filter(function(c){ return c.active; })
+      .slice()
+      .sort(function(a,b){ return a.name.localeCompare(b.name, 'pt-BR'); })
+      .map(function(c){ return '<option value="'+escapeAttr(c.name)+'">'; })
+      .join('');
+
+    var formHtml = READ_ONLY ? '' : ('' +
+    '<div class="panel">' +
+      '<div class="panel-title">'+(editing ? 'Editar lançamento' : 'Novo lançamento')+'</div>' +
+      '<div class="panel-sub">Digite o grupo livremente — se ele ainda não existir, é criado na hora. Preencha só uma das quatro colunas de valor, na conta e direção certas.</div>' +
+      '<datalist id="categoryOptions">'+datalistOptions+'</datalist>' +
+      '<form id="entryForm" novalidate>' +
+        '<div class="form-row">' +
+          '<div class="field"><label>Data</label><input type="date" name="date" value="'+(editing ? editing.date : todayISO())+'"></div>' +
+          '<div class="field grow"><label>Grupo</label><input type="text" name="categoryName" list="categoryOptions" placeholder="Ex: leds, combustível..." value="'+(editCat ? escapeAttr(editCat.name) : '')+'"></div>' +
+          '<div class="field grow"><label>Descrição</label><input type="text" name="description" placeholder="Ex: massagem, energia, fornecedor..." value="'+(editing ? escapeAttr(editing.description) : '')+'"></div>' +
+          '<div class="field grow"><label>Quem fez a movimentação</label>' +
+            '<input type="text" name="responsavel" id="responsavelInput" placeholder="Nome da pessoa" value="'+(editing ? escapeAttr(editing.responsavel || '') : '')+'">' +
+            '<div class="chip-row">' +
+              '<button type="button" class="chip resp-chip'+((editing && editing.responsavel==='Tuka') ? ' active' : '')+'" data-name="Tuka">Tuka</button>' +
+              '<button type="button" class="chip resp-chip'+((editing && editing.responsavel==='Marcio') ? ' active' : '')+'" data-name="Marcio">Marcio</button>' +
+            '</div>' +
+          '</div>' +
+        '</div>' +
+        '<div class="form-row">' +
+          '<div class="field"><label>Santander — Saída (R$)</label><input type="text" inputmode="decimal" name="santander_saida" placeholder="0,00" value="'+(editing && contaOf(editing)==='fc1' && editing.type==='saida' ? fmtNumberBR(editing.value) : '')+'"></div>' +
+          '<div class="field"><label>Santander — Entrada (R$)</label><input type="text" inputmode="decimal" name="santander_entrada" placeholder="0,00" value="'+(editing && contaOf(editing)==='fc1' && editing.type==='entrada' ? fmtNumberBR(editing.value) : '')+'"></div>' +
+          '<div class="field"><label>Nubank — Saída (R$)</label><input type="text" inputmode="decimal" name="nubank_saida" placeholder="0,00" value="'+(editing && contaOf(editing)==='fc2' && editing.type==='saida' ? fmtNumberBR(editing.value) : '')+'"></div>' +
+          '<div class="field"><label>Nubank — Entrada (R$)</label><input type="text" inputmode="decimal" name="nubank_entrada" placeholder="0,00" value="'+(editing && contaOf(editing)==='fc2' && editing.type==='entrada' ? fmtNumberBR(editing.value) : '')+'"></div>' +
+        '</div>' +
+        '<div class="btn-row">' +
+          '<button type="submit" class="btn btn-primary">'+(editing ? 'Salvar alterações' : 'Adicionar lançamento')+'</button>' +
+          (editing ? '<button type="button" class="btn btn-ghost" id="cancelEdit">Cancelar</button>' : '') +
+        '</div>' +
+      '</form>' +
+    '</div>');
+
+    var baseList = state.filters.data
+      ? state.entries.filter(function(e){ return e.date === state.filters.data; })
+      : entriesForMonth(state.month);
+    var list = baseList.filter(function(e){
+      if (state.filters.grupo){
+        var c = categoryById(e.categoryId);
+        if (!c || c.name !== state.filters.grupo) return false;
+      }
+      if (state.filters.descricao){
+        var needle = state.filters.descricao.toLowerCase();
+        if (e.description.toLowerCase().indexOf(needle) === -1) return false;
+      }
+      return true;
+    }).slice().sort(function(a,b){ return b.date.localeCompare(a.date); });
+
+    var allCatNames = state.categories.slice().sort(function(a,b){ return a.name.localeCompare(b.name,'pt-BR'); });
+    var filterHtml = '' +
+    '<div class="panel">' +
+      '<div class="panel-title">Filtrar</div>' +
+      '<div class="form-row">' +
+        '<div class="field"><label>Data específica</label><input type="date" id="filterData" value="'+escapeAttr(state.filters.data)+'"></div>' +
+        '<div class="field grow"><label>Descrição</label><input type="text" id="filterDescricao" placeholder="Buscar por descrição..." value="'+escapeAttr(state.filters.descricao)+'"></div>' +
+        '<div class="field"><label>Grupo</label><select id="filterGrupo">' +
+          '<option value="">Todos os grupos</option>' +
+          allCatNames.map(function(c){
+            return '<option value="'+escapeAttr(c.name)+'"'+(state.filters.grupo===c.name?' selected':'')+'>'+escapeHtml(c.name)+'</option>';
+          }).join('') +
+        '</select></div>' +
+        (state.filters.data || state.filters.grupo || state.filters.descricao ?
+          '<div class="field"><label>&nbsp;</label><button type="button" class="btn btn-ghost" id="filterClear">Limpar filtros</button></div>' : '') +
+      '</div>' +
+      (state.filters.data ? '<div class="panel-sub">Mostrando só '+new Date(state.filters.data+'T00:00:00').toLocaleDateString('pt-BR')+' (ignora o mês selecionado acima).</div>' : '') +
+    '</div>';
+
+    var rowsHtml;
+    var filtersActive = !!(state.filters.data || state.filters.grupo || state.filters.descricao);
+    if (list.length === 0){
+      rowsHtml = filtersActive
+        ? '<div class="empty-state">Nenhum lançamento encontrado com esses filtros.</div>'
+        : '<div class="empty-state">Nenhum lançamento em '+fmtMonthLabel(state.month)+' ainda.'+(READ_ONLY ? '' : ' Use o formulário acima para adicionar entradas ou saídas.')+'</div>';
+    } else {
+      rowsHtml = '<table><thead><tr><th>Data</th><th>Grupo</th><th>Descrição</th><th>Quem fez</th>' +
+        '<th style="text-align:right">Santander Saída</th><th style="text-align:right">Santander Entrada</th>' +
+        '<th style="text-align:right">Nubank Saída</th><th style="text-align:right">Nubank Entrada</th>' +
+        (READ_ONLY ? '' : '<th></th>')+'</tr></thead><tbody>' +
+        list.map(function(e){
+          var cat = categoryById(e.categoryId);
+          var catName = cat ? cat.name : 'Categoria removida';
+          var dateFmt = new Date(e.date + 'T00:00:00').toLocaleDateString('pt-BR');
+          var isFc1 = contaOf(e) === 'fc1';
+          return '<tr>' +
+            '<td>'+dateFmt+'</td>' +
+            '<td>'+escapeHtml(catName)+(cat && !cat.active ? ' <span class="badge inactive">inativo</span>' : '')+'</td>' +
+            '<td>'+escapeHtml(e.description)+'</td>' +
+            '<td>'+escapeHtml(e.responsavel || '—')+'</td>' +
+            '<td class="num" style="color:var(--negative)">'+(isFc1 && e.type==='saida' ? fmtBRL(e.value) : '')+'</td>' +
+            '<td class="num" style="color:var(--positive)">'+(isFc1 && e.type==='entrada' ? fmtBRL(e.value) : '')+'</td>' +
+            '<td class="num" style="color:var(--negative)">'+(!isFc1 && e.type==='saida' ? fmtBRL(e.value) : '')+'</td>' +
+            '<td class="num" style="color:var(--positive)">'+(!isFc1 && e.type==='entrada' ? fmtBRL(e.value) : '')+'</td>' +
+            (READ_ONLY ? '' : ('<td><div class="row-actions">' +
+              '<button class="icon-btn" data-edit-entry="'+e.id+'" title="Editar">✎</button>' +
+              '<button class="icon-btn danger" data-delete-entry="'+e.id+'" title="Excluir">✕</button>' +
+            '</div></td>')) +
+          '</tr>';
+        }).join('') +
+      '</tbody></table>';
+    }
+
+    return pasteHtml + formHtml + filterHtml + '<div class="panel">' +
+      '<div class="panel-title">'+(state.filters.data ? 'Lançamentos de '+new Date(state.filters.data+'T00:00:00').toLocaleDateString('pt-BR') : 'Lançamentos de '+fmtMonthLabel(state.month))+'</div>' +
+      '<div class="panel-sub">'+list.length+' lançamento(s)</div>' +
+      rowsHtml +
+    '</div>';
+  }
+
+  // ---------- Categorias ----------
+  function renderCategorias(){
+    function itemHtml(c){
+      return '<div class="cat-item '+(c.active?'':'is-inactive')+'" data-cat-id="'+c.id+'">' +
+        '<span class="cat-swatch" style="background:'+colorFor(c.id)+'"></span>' +
+        '<span class="cat-name" data-cat-display="'+c.id+'">'+escapeHtml(c.name)+'</span>' +
+        (c.active ? '' : '<span class="badge inactive">inativo</span>') +
+        (READ_ONLY ? '' : (
+        '<div class="row-actions">' +
+          '<button class="icon-btn" data-rename-cat="'+c.id+'" title="Renomear">✎</button>' +
+          '<button class="icon-btn" data-toggle-cat="'+c.id+'" title="'+(c.active?'Desativar':'Ativar')+'">'+(c.active?'⏸':'▶')+'</button>' +
+          '<button class="icon-btn danger" data-delete-cat="'+c.id+'" title="Excluir">✕</button>' +
+        '</div>')) +
+      '</div>';
+    }
+    var sorted = state.categories.slice().sort(function(a,b){ return a.name.localeCompare(b.name, 'pt-BR'); });
+
+    return (READ_ONLY ? '' : ('' +
+    '<div class="panel">' +
+      '<div class="panel-title">Novo grupo</div>' +
+      '<div class="panel-sub">Você normalmente nem precisa vir aqui — basta digitar o nome do grupo direto em Lançamentos que ele é criado sozinho. Use esta tela para renomear, desativar ou criar um grupo por antecipação.</div>' +
+      '<form id="catForm" novalidate>' +
+        '<div class="form-row">' +
+          '<div class="field grow"><label>Nome do grupo</label><input type="text" name="name" placeholder="Ex: Terapias, Combustível, Manutenção..."></div>' +
+        '</div>' +
+        '<button type="submit" class="btn btn-primary">Adicionar grupo</button>' +
+      '</form>' +
+    '</div>')) +
+    '<div class="panel">' +
+      '<div class="panel-title">Todos os grupos</div>' +
+      (sorted.length ? sorted.map(itemHtml).join('') : '<div class="empty-state">Nenhum grupo ainda.</div>') +
+    '</div>';
+  }
+
+  // ---------- Fluxo de caixa ----------
+  function buildFluxoRows(conta){
+    var months = allMonthKeys();
+    var acumulado = 0;
+    var rows = months.map(function(m){
+      var t = monthTotals(m, conta);
+      acumulado += t.resultado;
+      return {month:m, t:t, acumulado:acumulado};
+    });
+    rows.reverse();
+    return rows;
+  }
+
+  function fluxoTableHtml(rows){
+    return '<table><thead><tr><th>Mês</th><th style="text-align:right">Receita</th><th style="text-align:right">Despesa</th><th style="text-align:right">Resultado</th><th style="text-align:right">Acumulado</th></tr></thead><tbody>' +
+      rows.map(function(r){
+        return '<tr>' +
+          '<td style="text-transform:capitalize">'+fmtMonthLabel(r.month)+(r.month===state.month?' <span class="badge entrada">mês atual</span>':'')+'</td>' +
+          '<td class="num" style="color:var(--positive)">'+fmtBRL(r.t.receita)+'</td>' +
+          '<td class="num" style="color:var(--negative)">'+fmtBRL(r.t.despesa)+'</td>' +
+          '<td class="num" style="color:'+(r.t.resultado>=0?'var(--positive)':'var(--negative)')+'">'+fmtBRL(r.t.resultado)+'</td>' +
+          '<td class="num" style="font-weight:600;color:'+(r.acumulado>=0?'var(--positive)':'var(--negative)')+'">'+fmtBRL(r.acumulado)+'</td>' +
+        '</tr>';
+      }).join('') +
+      '</tbody></table>';
+  }
+
+  function renderFluxo(){
+    var months = allMonthKeys();
+    if (months.length === 0 || state.entries.length === 0){
+      return '<div class="panel"><div class="empty-state">Nenhum lançamento registrado ainda.</div></div>';
+    }
+    var rows1 = buildFluxoRows('fc1');
+    var rows2 = buildFluxoRows('fc2');
+    var rowsTotal = buildFluxoRows(null);
+
+    return '' +
+    '<div class="panel">' +
+      '<div class="panel-title">Santander</div>' +
+      '<div class="panel-sub">Só os lançamentos marcados como Santander.</div>' +
+      fluxoTableHtml(rows1) +
+    '</div>' +
+    '<div class="panel">' +
+      '<div class="panel-title">Nubank</div>' +
+      '<div class="panel-sub">Só os lançamentos marcados como Nubank.</div>' +
+      fluxoTableHtml(rows2) +
+    '</div>' +
+    '<div class="panel">' +
+      '<div class="panel-title">Total (Santander + Nubank)</div>' +
+      '<div class="panel-sub">A soma dos dois, mês a mês.</div>' +
+      fluxoTableHtml(rowsTotal) +
+    '</div>';
+  }
+
+  // ---------- Histórico ----------
+  function renderHistorico(){
+    var months = allMonthKeys().slice().reverse();
+    var withData = months.filter(function(m){ return monthTotals(m).count > 0; });
+    if (withData.length === 0){
+      return '<div class="panel"><div class="empty-state">Nenhum mês com lançamentos ainda. O histórico aparece aqui assim que você começar a lançar.</div></div>';
+    }
+    return withData.map(function(m){
+      var t = monthTotals(m);
+      var topDespesa = categoryBreakdown(m, 'saida').rows[0];
+      return '<div class="month-card" data-goto-month="'+m+'">' +
+        '<div class="month-card-name">'+fmtMonthLabel(m)+'</div>' +
+        '<div class="month-card-stats">' +
+          '<div class="mc-stat"><div class="mc-stat-label">Receita</div><div class="mc-stat-value" style="color:var(--positive)">'+fmtBRL(t.receita)+'</div></div>' +
+          '<div class="mc-stat"><div class="mc-stat-label">Despesa</div><div class="mc-stat-value" style="color:var(--negative)">'+fmtBRL(t.despesa)+'</div></div>' +
+          '<div class="mc-stat"><div class="mc-stat-label">Resultado</div><div class="mc-stat-value" style="color:'+(t.resultado>=0?'var(--positive)':'var(--negative)')+'">'+fmtBRL(t.resultado)+'</div></div>' +
+          '<div class="mc-stat"><div class="mc-stat-label">Maior despesa</div><div class="mc-stat-value" style="font-size:12.5px;font-weight:500;color:var(--text-muted)">'+(topDespesa ? escapeHtml(topDespesa.name) : '—')+'</div></div>' +
+        '</div>' +
+      '</div>';
+    }).join('');
+  }
+
+  // ---------- Helpers ----------
+  function escapeHtml(s){
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){
+      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+    });
+  }
+  function escapeAttr(s){ return escapeHtml(s); }
+
+  // ---------- Modal (substitui confirm/alert/prompt nativos) ----------
+  // Diálogos nativos do navegador (confirm/alert/prompt) ficam bloqueados
+  // dentro do artefato publicado, então tudo passa por essa caixinha própria.
+  var modalRoot = document.getElementById('modalRoot');
+  function closeModal(){ modalRoot.innerHTML = ''; }
+  function appConfirm(message, onYes){
+    modalRoot.innerHTML =
+      '<div class="modal-overlay" id="modalOverlay">' +
+        '<div class="modal-box">' +
+          '<div class="modal-message">'+escapeHtml(message)+'</div>' +
+          '<div class="modal-actions">' +
+            '<button type="button" class="btn btn-ghost" id="modalCancel">Cancelar</button>' +
+            '<button type="button" class="btn btn-primary" id="modalOk">Confirmar</button>' +
+          '</div>' +
+        '</div>' +
+      '</div>';
+    document.getElementById('modalCancel').addEventListener('click', closeModal);
+    document.getElementById('modalOverlay').addEventListener('click', function(ev){ if (ev.target.id === 'modalOverlay') closeModal(); });
+    document.getElementById('modalOk').addEventListener('click', function(){ closeModal(); onYes(); });
+  }
+  function appAlert(message){
+    modalRoot.innerHTML =
+      '<div class="modal-overlay" id="modalOverlay">' +
+        '<div class="modal-box">' +
+          '<div class="modal-message">'+escapeHtml(message)+'</div>' +
+          '<div class="modal-actions">' +
+            '<button type="button" class="btn btn-primary" id="modalOk">OK</button>' +
+          '</div>' +
+        '</div>' +
+      '</div>';
+    document.getElementById('modalOk').addEventListener('click', closeModal);
+    document.getElementById('modalOverlay').addEventListener('click', function(ev){ if (ev.target.id === 'modalOverlay') closeModal(); });
+  }
+  function appPrompt(message, defaultValue, onSubmit){
+    modalRoot.innerHTML =
+      '<div class="modal-overlay" id="modalOverlay">' +
+        '<div class="modal-box">' +
+          '<div class="modal-message">'+escapeHtml(message)+'</div>' +
+          '<input type="text" id="modalInput" value="'+escapeAttr(defaultValue || '')+'">' +
+          '<div class="modal-actions">' +
+            '<button type="button" class="btn btn-ghost" id="modalCancel">Cancelar</button>' +
+            '<button type="button" class="btn btn-primary" id="modalOk">OK</button>' +
+          '</div>' +
+        '</div>' +
+      '</div>';
+    var input = document.getElementById('modalInput');
+    input.focus();
+    input.select();
+    function submit(){ var v = input.value; closeModal(); onSubmit(v); }
+    document.getElementById('modalCancel').addEventListener('click', closeModal);
+    document.getElementById('modalOk').addEventListener('click', submit);
+    input.addEventListener('keydown', function(ev){ if (ev.key === 'Enter'){ ev.preventDefault(); submit(); } });
+  }
+  // Mostra um texto pronto para o usuário copiar manualmente (quando a API de
+  // clipboard não está disponível), com um botão de copiar já embutido.
+  function appShowCopyableLink(message, link){
+    modalRoot.innerHTML =
+      '<div class="modal-overlay" id="modalOverlay">' +
+        '<div class="modal-box">' +
+          '<div class="modal-message">'+escapeHtml(message)+'</div>' +
+          '<input type="text" id="modalInput" value="'+escapeAttr(link)+'" readonly>' +
+          '<div class="modal-actions">' +
+            '<button type="button" class="btn btn-ghost" id="modalCancel">Fechar</button>' +
+            '<button type="button" class="btn btn-primary" id="modalCopy">Copiar</button>' +
+          '</div>' +
+        '</div>' +
+      '</div>';
+    var input = document.getElementById('modalInput');
+    input.focus();
+    input.select();
+    document.getElementById('modalCancel').addEventListener('click', closeModal);
+    document.getElementById('modalOverlay').addEventListener('click', function(ev){ if (ev.target.id === 'modalOverlay') closeModal(); });
+    document.getElementById('modalCopy').addEventListener('click', function(){
+      input.select();
+      try{ document.execCommand('copy'); }catch(e){}
+      var btn = document.getElementById('modalCopy');
+      btn.textContent = 'Copiado ✓';
+      setTimeout(closeModal, 1200);
+    });
+  }
+
+  function refreshCategoryDatalist(){
+    var dl = document.getElementById('categoryOptions');
+    if (!dl) return;
+    var opts = state.categories
+      .filter(function(c){ return c.active; })
+      .slice()
+      .sort(function(a,b){ return a.name.localeCompare(b.name, 'pt-BR'); });
+    dl.innerHTML = opts.map(function(c){ return '<option value="'+escapeAttr(c.name)+'">'; }).join('');
+  }
+
+  // ---------- Event handlers ----------
+  function attachViewHandlers(){
+    var filterData = document.getElementById('filterData');
+    if (filterData){
+      filterData.addEventListener('change', function(){
+        state.filters.data = filterData.value || '';
+        render();
+      });
+    }
+    var filterGrupo = document.getElementById('filterGrupo');
+    if (filterGrupo){
+      filterGrupo.addEventListener('change', function(){
+        state.filters.grupo = filterGrupo.value || '';
+        render();
+      });
+    }
+    var filterDescricao = document.getElementById('filterDescricao');
+    if (filterDescricao){
+      filterDescricao.addEventListener('input', function(){
+        state.filters.descricao = filterDescricao.value;
+        render();
+        var el = document.getElementById('filterDescricao');
+        if (el){ el.focus(); var v = el.value; el.setSelectionRange(v.length, v.length); }
+      });
+    }
+    var filterClear = document.getElementById('filterClear');
+    if (filterClear){
+      filterClear.addEventListener('click', function(){
+        state.filters = {data:'', grupo:'', descricao:''};
+        render();
+      });
+    }
+    var pasteBtn = document.getElementById('pasteBtn');
+    if (pasteBtn){
+      pasteBtn.addEventListener('click', function(){
+        var area = document.getElementById('pasteArea');
+        var text = area.value;
+        if (!text || !text.trim()){ appAlert('Cole o conteúdo da planilha na caixa antes de processar.'); return; }
+        var result = parsePastedSheet(text);
+        if (result.added > 0) saveAppData();
+        var msg = result.added + ' lançamento(s) adicionado(s).';
+        if (result.skippedDuplicate) msg += '\n' + result.skippedDuplicate + ' já existiam e foram ignorados.';
+        if (result.skippedNoValue) msg += '\n' + result.skippedNoValue + ' linha(s) sem valor em nenhuma coluna de Entrada/Saída.';
+        if (result.skippedBadRow) msg += '\n' + result.skippedBadRow + ' linha(s) não reconhecida(s) (faltou data, descrição ou grupo).';
+        state.pasteResultMsg = msg;
+        render();
+      });
+    }
+    var entryForm = document.getElementById('entryForm');
+    if (entryForm){
+      entryForm.addEventListener('submit', function(ev){
+        ev.preventDefault();
+        var fd = new FormData(entryForm);
+        var dateVal = fd.get('date');
+        var categoryName = (fd.get('categoryName') || '').trim();
+        var descriptionVal = (fd.get('description') || '').trim();
+        var responsavelVal = (fd.get('responsavel') || '').trim();
+        if (!dateVal){ appAlert('Preencha a data do lançamento.'); return; }
+        if (!categoryName){ appAlert('Preencha o grupo do lançamento.'); return; }
+        if (!descriptionVal){ appAlert('Preencha a descrição do lançamento.'); return; }
+
+        var fields = [
+          {name:'santander_saida', conta:'fc1', type:'saida'},
+          {name:'santander_entrada', conta:'fc1', type:'entrada'},
+          {name:'nubank_saida', conta:'fc2', type:'saida'},
+          {name:'nubank_entrada', conta:'fc2', type:'entrada'}
+        ];
+        var filled = [];
+        fields.forEach(function(f){
+          var raw = fd.get(f.name);
+          var val = parseBRNumber(raw);
+          if (!isNaN(val) && val > 0) filled.push({conta:f.conta, type:f.type, value: val});
+        });
+        if (filled.length > 1){
+          appAlert('Preencha só uma das quatro colunas de valor neste lançamento (Santander ou Nubank, Saída ou Entrada).');
+          return;
+        }
+        if (filled.length === 0){
+          appAlert('Informe um valor em uma das colunas de Saída ou Entrada.');
+          return;
+        }
+        var type = filled[0].type;
+        var value = filled[0].value;
+        var conta = filled[0].conta;
+        var category = resolveCategory(categoryName);
+
+        if (state.editingEntryId){
+          var e = state.entries.find(function(x){ return x.id === state.editingEntryId; });
+          e.date = dateVal; e.type = type; e.categoryId = category.id;
+          e.description = descriptionVal; e.value = value; e.conta = conta; e.responsavel = responsavelVal;
+        } else {
+          state.entries.push({
+            id: uid('entry'), date: dateVal, type: type, conta: conta,
+            categoryId: category.id, description: descriptionVal, value: value, responsavel: responsavelVal
+          });
+        }
+        state.editingEntryId = null;
+        render(); // mostra na hora — salvar não trava a tela
+        saveAppData();
+      });
+      var cancelBtn = document.getElementById('cancelEdit');
+      if (cancelBtn) cancelBtn.addEventListener('click', function(){ state.editingEntryId = null; render(); });
+
+      // Chips de atalho pra preencher "Quem fez a movimentação" com um clique,
+      // em vez de digitar. Clicar de novo no mesmo chip limpa o campo.
+      var respInput = document.getElementById('responsavelInput');
+      entryForm.querySelectorAll('.resp-chip').forEach(function(chip){
+        chip.addEventListener('click', function(){
+          var name = chip.getAttribute('data-name');
+          var alreadyActive = chip.classList.contains('active');
+          entryForm.querySelectorAll('.resp-chip').forEach(function(c){ c.classList.remove('active'); });
+          if (alreadyActive){
+            respInput.value = '';
+          } else {
+            respInput.value = name;
+            chip.classList.add('active');
+          }
+        });
+      });
+
+      // Cria o grupo imediatamente ao sair do campo (não espera o lançamento
+      // inteiro ser salvo), sem re-renderizar o formulário — assim o resto do
+      // que já foi digitado na linha não se perde.
+      var catInput = entryForm.querySelector('input[name="categoryName"]');
+      if (catInput){
+        catInput.addEventListener('blur', function(){
+          var name = catInput.value.trim();
+          if (!name) return;
+          var existing = findCategoryByName(name);
+          if (!existing){
+            resolveCategory(name);
+            saveAppData();
+            refreshCategoryDatalist();
+          } else if (!existing.active){
+            existing.active = true;
+            saveAppData();
+          }
+        });
+      }
+
+      // Navegação estilo planilha: seta para a direita/esquerda pula para o
+      // próximo campo quando o cursor já está no fim/início do texto.
+      var navFields = Array.prototype.slice.call(
+        entryForm.querySelectorAll('input[type="date"], input[name="categoryName"], input[name="description"], input[name="responsavel"], input[name="santander_saida"], input[name="santander_entrada"], input[name="nubank_saida"], input[name="nubank_entrada"]')
+      );
+      navFields.forEach(function(input){
+        input.addEventListener('keydown', function(ev){
+          if (ev.key !== 'ArrowRight' && ev.key !== 'ArrowLeft') return;
+          var atEnd = true, atStart = true;
+          try{
+            atEnd = input.selectionStart === input.value.length && input.selectionEnd === input.value.length;
+            atStart = input.selectionStart === 0 && input.selectionEnd === 0;
+          }catch(e){ /* inputs de data/número podem não suportar seleção de texto */ }
+          var idx = navFields.indexOf(input);
+          if (ev.key === 'ArrowRight' && atEnd && idx < navFields.length - 1){
+            ev.preventDefault();
+            var next = navFields[idx + 1];
+            next.focus();
+            try{ next.select(); }catch(e){}
+          } else if (ev.key === 'ArrowLeft' && atStart && idx > 0){
+            ev.preventDefault();
+            var prev = navFields[idx - 1];
+            prev.focus();
+            try{ prev.select(); }catch(e){}
+          }
+        });
+      });
+    }
+
+    document.querySelectorAll('[data-edit-entry]').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        state.editingEntryId = btn.getAttribute('data-edit-entry');
+        render();
+        window.scrollTo({top:0, behavior:'smooth'});
+      });
+    });
+    document.querySelectorAll('[data-delete-entry]').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        var id = btn.getAttribute('data-delete-entry');
+        appConfirm('Excluir este lançamento?', function(){
+          state.entries = state.entries.filter(function(e){ return e.id !== id; });
+          render();
+          saveAppData();
+        });
+      });
+    });
+
+    var catForm = document.getElementById('catForm');
+    if (catForm){
+      catForm.addEventListener('submit', function(ev){
+        ev.preventDefault();
+        var fd = new FormData(catForm);
+        var name = (fd.get('name') || '').trim();
+        if (!name) { appAlert('Preencha o nome do grupo.'); return; }
+        if (findCategoryByName(name)) { appAlert('Já existe um grupo com esse nome.'); return; }
+        state.categories.push({id: uid('cat'), name: name, active:true, createdAt: Date.now()});
+        catForm.reset();
+        render();
+        saveAppData();
+      });
+    }
+    document.querySelectorAll('[data-toggle-cat]').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        var id = btn.getAttribute('data-toggle-cat');
+        var c = categoryById(id);
+        c.active = !c.active;
+        render();
+        saveAppData();
+      });
+    });
+    document.querySelectorAll('[data-rename-cat]').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        var id = btn.getAttribute('data-rename-cat');
+        var c = categoryById(id);
+        appPrompt('Novo nome do grupo:', c.name, function(next){
+          next = (next || '').trim();
+          if (!next) return;
+          c.name = next;
+          render();
+          saveAppData();
+        });
+      });
+    });
+    document.querySelectorAll('[data-delete-cat]').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        var id = btn.getAttribute('data-delete-cat');
+        var c = categoryById(id);
+        var usedCount = state.entries.filter(function(e){ return e.categoryId === id; }).length;
+        if (usedCount > 0){
+          appAlert('"'+c.name+'" já tem '+usedCount+' lançamento(s) e não pode ser excluído, para não apagar o histórico. Use o botão de desativar em vez disso.');
+          return;
+        }
+        appConfirm('Excluir o grupo "'+c.name+'"? Ele não tem nenhum lançamento, então isso não afeta o histórico.', function(){
+          state.categories = state.categories.filter(function(x){ return x.id !== id; });
+          render();
+          saveAppData();
+        });
+      });
+    });
+
+    document.querySelectorAll('[data-goto-month]').forEach(function(card){
+      card.addEventListener('click', function(){
+        state.month = card.getAttribute('data-goto-month');
+        setView('dashboard');
+      });
+    });
+  }
+
+  document.getElementById('nav').addEventListener('click', function(ev){
+    var btn = ev.target.closest('.nav-item');
+    if (!btn) return;
+    setView(btn.dataset.view);
+  });
+  document.getElementById('prevMonth').addEventListener('click', function(){
+    state.month = shiftMonth(state.month, -1);
+    render();
+  });
+  document.getElementById('nextMonth').addEventListener('click', function(){
+    state.month = shiftMonth(state.month, 1);
+    render();
+  });
+  document.getElementById('exportBtn').addEventListener('click', function(){
+    var payload = JSON.stringify({categories: state.categories, entries: state.entries}, null, 2);
+    var blob = new Blob([payload], {type: 'application/json'});
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    var stamp = todayISO();
+    a.href = url;
+    a.download = 'backup-controle-financeiro-' + stamp + '.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(function(){ URL.revokeObjectURL(url); }, 2000);
+  });
+  document.getElementById('importBtn').addEventListener('click', function(){
+    document.getElementById('importFileInput').click();
+  });
+  document.getElementById('importFileInput').addEventListener('change', function(ev){
+    var file = ev.target.files[0];
+    if (!file) return;
+    var reader = new FileReader();
+    reader.onload = function(){
+      var data;
+      try{ data = JSON.parse(reader.result); }
+      catch(e){ appAlert('Esse arquivo não é um backup válido.'); return; }
+      if (!data || !Array.isArray(data.categories) || !Array.isArray(data.entries)){
+        appAlert('Esse arquivo não tem o formato esperado de backup.');
+        return;
+      }
+      appConfirm('Isso substitui TUDO que está na tela agora pelos dados desse arquivo de backup ('+data.entries.length+' lançamento(s)). Continuar?', function(){
+        state.categories = data.categories;
+        state.entries = data.entries;
+        render();
+        saveAppData();
+      });
+    };
+    reader.readAsText(file);
+    ev.target.value = '';
+  });
+  document.getElementById('resetBtn').addEventListener('click', function(){
+    appConfirm('Isso vai apagar todos os lançamentos e categorias salvos neste artefato. Continuar?', function(){
+      state.categories = seedCategories();
+      state.entries = [];
+      render();
+      saveAppData();
+    });
+  });
+  document.getElementById('shareBtn').addEventListener('click', async function(){
+    var btn = this;
+    var url = new URL(window.location.href);
+    url.searchParams.set('modo', 'visualizacao');
+    var link = url.toString();
+    try{
+      await navigator.clipboard.writeText(link);
+      var original = btn.textContent;
+      btn.textContent = 'Link copiado ✓';
+      setTimeout(function(){ btn.textContent = original; }, 2000);
+    }catch(e){
+      appShowCopyableLink('Copie este link e envie para a pessoa (ela só vai poder visualizar):', link);
+    }
+  });
+
+  // ---------- Init ----------
+  (async function init(){
+    if (READ_ONLY){
+      document.getElementById('readOnlyBanner').style.display = 'inline-block';
+      document.getElementById('resetBtn').style.display = 'none';
+      document.getElementById('shareBtn').style.display = 'none';
+      document.getElementById('importBtn').style.display = 'none';
+    }
+    await loadState();
+    setView('dashboard');
+  })();
+})();
+</script>
+</body>
+</html>
