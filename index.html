@@ -915,7 +915,7 @@
 
     return '' +
     '<div class="stat-row">' +
-      '<div class="stat-card"><div class="stat-label">Receita do mês</div><div class="stat-value positive">'+fmtBRL(t.receita)+'</div></div>' +
+      '<div class="stat-card"><div class="stat-label">Receita do mês + saldo anterior</div><div class="stat-value positive">'+fmtBRL(t.receita)+'</div></div>' +
       '<div class="stat-card"><div class="stat-label">Despesa do mês</div><div class="stat-value negative">'+fmtBRL(t.despesa)+'</div></div>' +
       '<div class="stat-card"><div class="stat-label">Resultado</div><div class="stat-value '+(t.resultado>=0?'positive':'negative')+'">'+fmtBRL(t.resultado)+'</div></div>' +
       '<div class="stat-card"><div class="stat-label">Resultado (sem saldo anterior)</div><div class="stat-value '+(resultadoSemSaldoAnterior>=0?'positive':'negative')+'">'+fmtBRL(resultadoSemSaldoAnterior)+'</div></div>' +
