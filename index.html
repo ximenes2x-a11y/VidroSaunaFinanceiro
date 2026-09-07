@@ -145,7 +145,7 @@
   .month-label{font-size:14px;font-weight:600;min-width:132px;text-align:center;text-transform:capitalize;}
 
   /* ---------- Cards ---------- */
-  .stat-row{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:28px;}
+  .stat-row{display:grid;grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));gap:14px;margin-bottom:28px;}
   .stat-card{
     background:var(--surface);border:1px solid var(--border-soft);
     border-radius:var(--radius-md);padding:18px 20px;
@@ -890,6 +890,14 @@
     var t = monthTotals(state.month);
     var despesaBk = categoryBreakdown(state.month, 'saida');
     var receitaBk = categoryBreakdown(state.month, 'entrada');
+    var saldoAnteriorDoMes = entriesForMonth(state.month)
+      .filter(function(e){
+        if (e.type !== 'entrada') return false;
+        var c = categoryById(e.categoryId);
+        return c && c.name === 'Saldo anterior';
+      })
+      .reduce(function(s, e){ return s + Number(e.value); }, 0);
+    var resultadoSemSaldoAnterior = t.receita - t.despesa - saldoAnteriorDoMes;
 
     function barsHtml(bk, color){
       if (bk.rows.length === 0){
@@ -910,6 +918,7 @@
       '<div class="stat-card"><div class="stat-label">Receita do mês</div><div class="stat-value positive">'+fmtBRL(t.receita)+'</div></div>' +
       '<div class="stat-card"><div class="stat-label">Despesa do mês</div><div class="stat-value negative">'+fmtBRL(t.despesa)+'</div></div>' +
       '<div class="stat-card"><div class="stat-label">Resultado</div><div class="stat-value '+(t.resultado>=0?'positive':'negative')+'">'+fmtBRL(t.resultado)+'</div></div>' +
+      '<div class="stat-card"><div class="stat-label">Resultado (sem saldo anterior)</div><div class="stat-value '+(resultadoSemSaldoAnterior>=0?'positive':'negative')+'">'+fmtBRL(resultadoSemSaldoAnterior)+'</div></div>' +
     '</div>' +
     '<div class="two-col">' +
       '<div class="panel">' +
