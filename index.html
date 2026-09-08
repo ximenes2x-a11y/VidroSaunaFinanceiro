@@ -898,6 +898,13 @@
       })
       .reduce(function(s, e){ return s + Number(e.value); }, 0);
     var resultadoSemSaldoAnterior = t.receita - t.despesa - saldoAnteriorDoMes;
+    function allTimeSaldo(conta){
+      return state.entries
+        .filter(function(e){ return contaOf(e) === conta; })
+        .reduce(function(s, e){ return s + (e.type === 'entrada' ? Number(e.value) : -Number(e.value)); }, 0);
+    }
+    var saldoSantander = allTimeSaldo('fc1');
+    var saldoNubank = allTimeSaldo('fc2');
 
     function barsHtml(bk, color){
       if (bk.rows.length === 0){
@@ -931,6 +938,10 @@
         '<div class="panel-title">Receitas por grupo</div>' +
         '<div class="panel-sub">'+ (receitaBk.total>0 ? fmtBRL(receitaBk.total)+' no mês' : 'Sem receita registrada ainda') +'</div>' +
         barsHtml(receitaBk, 'var(--positive)') +
+        '<div class="stat-row" style="margin-top:16px;margin-bottom:0;grid-template-columns:1fr 1fr;">' +
+          '<div class="stat-card"><div class="stat-label">Saldo Santander</div><div class="stat-value '+(saldoSantander>=0?'positive':'negative')+'">'+fmtBRL(saldoSantander)+'</div></div>' +
+          '<div class="stat-card"><div class="stat-label">Saldo Nubank</div><div class="stat-value '+(saldoNubank>=0?'positive':'negative')+'">'+fmtBRL(saldoNubank)+'</div></div>' +
+        '</div>' +
       '</div>' +
     '</div>' +
     (t.count === 0 ? '<div class="empty-state">Nenhum lançamento em '+fmtMonthLabel(state.month)+'. Vá em <strong>Lançamentos</strong> para adicionar o primeiro.</div>' : '');
@@ -1599,30 +1610,4 @@
   document.getElementById('shareBtn').addEventListener('click', async function(){
     var btn = this;
     var url = new URL(window.location.href);
-    url.searchParams.set('modo', 'visualizacao');
-    var link = url.toString();
-    try{
-      await navigator.clipboard.writeText(link);
-      var original = btn.textContent;
-      btn.textContent = 'Link copiado ✓';
-      setTimeout(function(){ btn.textContent = original; }, 2000);
-    }catch(e){
-      appShowCopyableLink('Copie este link e envie para a pessoa (ela só vai poder visualizar):', link);
-    }
-  });
-
-  // ---------- Init ----------
-  (async function init(){
-    if (READ_ONLY){
-      document.getElementById('readOnlyBanner').style.display = 'inline-block';
-      document.getElementById('resetBtn').style.display = 'none';
-      document.getElementById('shareBtn').style.display = 'none';
-      document.getElementById('importBtn').style.display = 'none';
-    }
-    await loadState();
-    setView('dashboard');
-  })();
-})();
-</script>
-</body>
-</h
+    url.searchParams.set('modo', 'visual
