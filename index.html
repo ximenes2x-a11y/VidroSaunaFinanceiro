@@ -1610,4 +1610,30 @@
   document.getElementById('shareBtn').addEventListener('click', async function(){
     var btn = this;
     var url = new URL(window.location.href);
-    url.searchParams.set('modo', 'visual
+    url.searchParams.set('modo', 'visualizacao');
+    var link = url.toString();
+    try{
+      await navigator.clipboard.writeText(link);
+      var original = btn.textContent;
+      btn.textContent = 'Link copiado ✓';
+      setTimeout(function(){ btn.textContent = original; }, 2000);
+    }catch(e){
+      appShowCopyableLink('Copie este link e envie para a pessoa (ela só vai poder visualizar):', link);
+    }
+  });
+
+  // ---------- Init ----------
+  (async function init(){
+    if (READ_ONLY){
+      document.getElementById('readOnlyBanner').style.display = 'inline-block';
+      document.getElementById('resetBtn').style.display = 'none';
+      document.getElementById('shareBtn').style.display = 'none';
+      document.getElementById('importBtn').style.display = 'none';
+    }
+    await loadState();
+    setView('dashboard');
+  })();
+})();
+</script>
+</body>
+</html>
