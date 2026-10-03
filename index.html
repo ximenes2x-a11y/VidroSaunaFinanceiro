@@ -1214,16 +1214,17 @@
       var t = monthTotals(m);
       var tSantander = monthTotals(m, 'fc1');
       var tNubank = monthTotals(m, 'fc2');
-      var topDespesa = categoryBreakdown(m, 'saida').rows[0];
+      var receitaMaisSaldoAnterior = t.receita + cumulativeBalanceBeforeMonth(m);
       return '<div class="month-card" data-goto-month="'+m+'">' +
         '<div class="month-card-name">'+fmtMonthLabel(m)+'</div>' +
         '<div class="month-card-stats">' +
-          '<div class="mc-stat"><div class="mc-stat-label">Receita</div><div class="mc-stat-value" style="color:var(--positive)">'+fmtBRL(t.receita)+'</div></div>' +
+          '<div class="mc-stat"><div class="mc-stat-label">Receita do mês + saldo anterior</div><div class="mc-stat-value" style="color:var(--positive)">'+fmtBRL(receitaMaisSaldoAnterior)+'</div></div>' +
           '<div class="mc-stat"><div class="mc-stat-label">Despesa</div><div class="mc-stat-value" style="color:var(--negative)">'+fmtBRL(t.despesa)+'</div></div>' +
           '<div class="mc-stat"><div class="mc-stat-label">Resultado (Total)</div><div class="mc-stat-value" style="color:'+(t.resultado>=0?'var(--positive)':'var(--negative)')+'">'+fmtBRL(t.resultado)+'</div></div>' +
           '<div class="mc-stat"><div class="mc-stat-label">Resultado Santander</div><div class="mc-stat-value" style="color:'+(tSantander.resultado>=0?'var(--positive)':'var(--negative)')+'">'+fmtBRL(tSantander.resultado)+'</div></div>' +
           '<div class="mc-stat"><div class="mc-stat-label">Resultado Nubank</div><div class="mc-stat-value" style="color:'+(tNubank.resultado>=0?'var(--positive)':'var(--negative)')+'">'+fmtBRL(tNubank.resultado)+'</div></div>' +
-          '<div class="mc-stat"><div class="mc-stat-label">Maior despesa</div><div class="mc-stat-value" style="font-size:12.5px;font-weight:500;color:var(--text-muted)">'+(topDespesa ? escapeHtml(topDespesa.name) : '—')+'</div></div>' +
+          '<div class="mc-stat"><div class="mc-stat-label">Receita do mês Santander</div><div class="mc-stat-value" style="color:var(--positive)">'+fmtBRL(tSantander.receita)+'</div></div>' +
+          '<div class="mc-stat"><div class="mc-stat-label">Receita do mês Nubank</div><div class="mc-stat-value" style="color:var(--positive)">'+fmtBRL(tNubank.receita)+'</div></div>' +
         '</div>' +
       '</div>';
     }).join('');
