@@ -957,6 +957,9 @@
           '<div class="stat-card"><div class="stat-label">Saldo Santander</div><div class="stat-value '+(saldoSantander>=0?'positive':'negative')+'">'+fmtBRL(saldoSantander)+'</div></div>' +
           '<div class="stat-card"><div class="stat-label">Saldo Nubank</div><div class="stat-value '+(saldoNubank>=0?'positive':'negative')+'">'+fmtBRL(saldoNubank)+'</div></div>' +
         '</div>' +
+        '<div class="stat-row" style="margin-top:10px;margin-bottom:0;grid-template-columns:1fr;">' +
+          '<div class="stat-card"><div class="stat-label">Saldo Santander + Saldo Nubank</div><div class="stat-value '+((saldoSantander+saldoNubank)>=0?'positive':'negative')+'">'+fmtBRL(saldoSantander+saldoNubank)+'</div></div>' +
+        '</div>' +
       '</div>' +
     '</div>' +
     (t.count === 0 ? '<div class="empty-state">Nenhum lançamento em '+fmtMonthLabel(state.month)+'. Vá em <strong>Lançamentos</strong> para adicionar o primeiro.</div>' : '');
@@ -1144,7 +1147,7 @@
   }
 
   function fluxoTableHtml(rows){
-    return '<table><thead><tr><th>Mês</th><th style="text-align:right">Receita mês atual+<br>saldo mês anterior</th><th style="text-align:right">Despesa</th><th style="text-align:right">Resultado</th><th style="text-align:right">Acumulado</th></tr></thead><tbody>' +
+    return '<table><thead><tr><th>Mês</th><th style="text-align:right">Receita do mês +<br>saldo mês anterior</th><th style="text-align:right">Despesa</th><th style="text-align:right">Resultado</th><th style="text-align:right">Acumulado</th></tr></thead><tbody>' +
       rows.map(function(r){
         return '<tr>' +
           '<td style="text-transform:capitalize">'+fmtMonthLabel(r.month)+(r.month===state.month?' <span class="badge entrada">mês atual</span>':'')+'</td>' +
