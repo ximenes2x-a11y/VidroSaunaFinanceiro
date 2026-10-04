@@ -1218,6 +1218,8 @@
       var tSantander = monthTotals(m, 'fc1');
       var tNubank = monthTotals(m, 'fc2');
       var receitaMaisSaldoAnterior = t.receita + cumulativeBalanceBeforeMonth(m);
+      var receitaSantanderPura = tSantander.receita - saldoAnteriorForMonth(m, 'fc1');
+      var receitaNubankPura = tNubank.receita - saldoAnteriorForMonth(m, 'fc2');
       return '<div class="month-card" data-goto-month="'+m+'">' +
         '<div class="month-card-name">'+fmtMonthLabel(m)+'</div>' +
         '<div class="month-card-stats">' +
@@ -1226,8 +1228,8 @@
           '<div class="mc-stat"><div class="mc-stat-label">Resultado (Total)</div><div class="mc-stat-value" style="color:'+(t.resultado>=0?'var(--positive)':'var(--negative)')+'">'+fmtBRL(t.resultado)+'</div></div>' +
           '<div class="mc-stat"><div class="mc-stat-label">Resultado Santander</div><div class="mc-stat-value" style="color:'+(tSantander.resultado>=0?'var(--positive)':'var(--negative)')+'">'+fmtBRL(tSantander.resultado)+'</div></div>' +
           '<div class="mc-stat"><div class="mc-stat-label">Resultado Nubank</div><div class="mc-stat-value" style="color:'+(tNubank.resultado>=0?'var(--positive)':'var(--negative)')+'">'+fmtBRL(tNubank.resultado)+'</div></div>' +
-          '<div class="mc-stat"><div class="mc-stat-label">Receita do mês Santander</div><div class="mc-stat-value" style="color:var(--positive)">'+fmtBRL(tSantander.receita)+'</div></div>' +
-          '<div class="mc-stat"><div class="mc-stat-label">Receita do mês Nubank</div><div class="mc-stat-value" style="color:var(--positive)">'+fmtBRL(tNubank.receita)+'</div></div>' +
+          '<div class="mc-stat"><div class="mc-stat-label">Receita do mês Santander</div><div class="mc-stat-value" style="color:var(--positive)">'+fmtBRL(receitaSantanderPura)+'</div></div>' +
+          '<div class="mc-stat"><div class="mc-stat-label">Receita do mês Nubank</div><div class="mc-stat-value" style="color:var(--positive)">'+fmtBRL(receitaNubankPura)+'</div></div>' +
         '</div>' +
       '</div>';
     }).join('');
