@@ -145,13 +145,13 @@
   .month-label{font-size:14px;font-weight:600;min-width:132px;text-align:center;text-transform:capitalize;}
 
   /* ---------- Cards ---------- */
-  .stat-row{display:grid;grid-template-columns:repeat(5, 1fr);gap:10px;margin-bottom:28px;}
+  .stat-row{display:grid;grid-template-columns:repeat(auto-fit, minmax(170px, 1fr));gap:10px;margin-bottom:28px;}
   .stat-card{
     background:var(--surface);border:1px solid var(--border-soft);
     border-radius:var(--radius-md);padding:12px 14px;min-width:0;
   }
   .stat-label{font-size:10.5px;color:var(--text-faint);margin-bottom:6px;line-height:1.3;}
-  .stat-value{font-family:var(--serif);font-size:18px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .stat-value{font-family:var(--serif);font-size:clamp(15px, 1.5vw, 20px);font-weight:600;white-space:normal;overflow-wrap:anywhere;line-height:1.2;}
   .stat-value.positive{color:var(--positive);}
   .stat-value.negative{color:var(--negative);}
 
@@ -163,15 +163,18 @@
   .panel-sub{font-size:12px;color:var(--text-faint);margin-bottom:18px;}
 
   .two-col{display:grid;grid-template-columns:1.1fr 0.9fr;gap:16px;align-items:start;}
+  .two-col > *{min-width:0;}
+  @media (max-width: 1250px){ .two-col{grid-template-columns:1fr;} }
 
   /* ---------- Bars ---------- */
   .bar-row{display:flex;align-items:center;gap:10px;margin-bottom:11px;}
   .bar-row:last-child{margin-bottom:0;}
-  .bar-label{width:120px;flex-shrink:0;font-size:12.5px;color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .bar-label{width:120px;flex-shrink:0;font-size:12.5px;color:var(--text-muted);white-space:normal;overflow-wrap:anywhere;line-height:1.25;}
   .bar-track{flex:1;height:8px;background:var(--bg-soft);border-radius:4px;overflow:hidden;}
   .bar-fill{height:100%;border-radius:4px;}
-  .bar-pct{width:48px;flex-shrink:0;font-size:12px;color:var(--text-faint);text-align:right;}
-  .bar-value{width:84px;flex-shrink:0;font-size:12px;color:var(--text-muted);text-align:right;font-variant-numeric:tabular-nums;}
+  .bar-pct{min-width:48px;flex-shrink:0;font-size:12px;color:var(--text-faint);text-align:right;white-space:nowrap;}
+  .bar-value{min-width:84px;flex-shrink:0;font-size:12px;color:var(--text-muted);text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;}
+  .bar-track{min-width:40px;}
 
   .empty-state{
     padding:34px 20px;text-align:center;color:var(--text-faint);font-size:13px;
@@ -233,14 +236,15 @@
   .btn-row{display:flex;gap:8px;align-items:flex-end;}
 
   /* ---------- Table / list ---------- */
+  .table-wrap{overflow-x:auto;max-width:100%;}
   table{width:100%;border-collapse:collapse;}
   th{
     text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.04em;
-    color:var(--text-faint);font-weight:600;padding:0 10px 10px;border-bottom:1px solid var(--border-soft);
+    color:var(--text-faint);font-weight:600;padding:0 8px 10px;border-bottom:1px solid var(--border-soft);
   }
-  td{padding:11px 10px;font-size:13.5px;border-bottom:1px solid var(--border-soft);vertical-align:middle;}
+  td{padding:11px 8px;font-size:13.5px;border-bottom:1px solid var(--border-soft);vertical-align:middle;}
   tr:last-child td{border-bottom:none;}
-  td.num{text-align:right;font-variant-numeric:tabular-nums;}
+  td.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;}
   .badge{
     display:inline-block;font-size:11px;padding:3px 8px;border-radius:20px;font-weight:600;
   }
@@ -279,6 +283,7 @@
   .month-card-name{font-family:var(--serif);font-size:15px;font-weight:600;width:150px;flex-shrink:0;text-transform:capitalize;}
   .month-card-stats{display:flex;gap:26px;flex:1;flex-wrap:wrap;}
   .mc-stat{min-width:90px;}
+  .mc-stat-value{white-space:nowrap;}
   .mc-stat-label{font-size:10.5px;color:var(--text-faint);margin-bottom:2px;}
   .mc-stat-value{font-size:14px;font-weight:600;}
 
@@ -546,7 +551,8 @@
   }
   // Colunas esperadas, na ordem: A Data, B Quem fez, C Descrição, D Grupo,
   // E Entrada Santander, F Saída Santander, G (ignorada), H Entrada Nubank,
-  // I Saída Nubank, J/K (ignoradas).
+  // I Saída Nubank, J (ignorada), K Total Santander+Nubank+Itaú (ignorada), L (ignorada),
+  // M Entrada Itaú, N Saída Itaú, O Resultado Itaú (ignorada).
   function parsePastedSheet(text){
     var lines = text.split(/\r?\n/).map(function(l){ return l.trim(); }).filter(function(l){ return l.length > 0; });
     var added = 0, skippedNoValue = 0, skippedDuplicate = 0, skippedBadRow = 0;
@@ -563,7 +569,9 @@
         {conta:'fc1', type:'entrada', raw: cols[4]},
         {conta:'fc1', type:'saida',   raw: cols[5]},
         {conta:'fc2', type:'entrada', raw: cols[7]},
-        {conta:'fc2', type:'saida',   raw: cols[8]}
+        {conta:'fc2', type:'saida',   raw: cols[8]},
+        {conta:'fc3', type:'entrada', raw: cols[12]},
+        {conta:'fc3', type:'saida',   raw: cols[13]}
       ];
       var any = false;
       candidates.forEach(function(c){
@@ -806,7 +814,7 @@
   async function saveImportFlag(){ return saveAppData(); }
 
   // ---------- Derived data ----------
-  var CONTA_LABELS = {fc1: 'Santander', fc2: 'Nubank'};
+  var CONTA_LABELS = {fc1: 'Santander', fc2: 'Nubank', fc3: 'Itaú'};
   function contaOf(e){ return e.conta || 'fc1'; }
   function entriesForMonth(monthKey){
     return state.entries.filter(function(e){ return e.date.slice(0,7) === monthKey; });
@@ -822,7 +830,7 @@
     return {receita: receita, despesa: despesa, resultado: receita - despesa, count: list.length};
   }
   // Soma dos lançamentos do grupo "Saldo anterior" (entrada) num mês —
-  // opcionalmente só de uma conta (fc1/fc2); sem conta, soma as duas.
+  // opcionalmente só de uma conta (fc1/fc2/fc3); sem conta, soma todas.
   function saldoAnteriorForMonth(monthKey, conta){
     var list = entriesForMonth(monthKey);
     if (conta) list = list.filter(function(e){ return contaOf(e) === conta; });
@@ -877,7 +885,7 @@
     dashboard: {title:'Dashboard', desc:'Receita, despesa e resultado do mês, com o peso de cada grupo calculado automaticamente.'},
     lancamentos: {title:'Lançamentos', desc:'Digite direto na coluna Entrada ou Saída. O grupo é criado sozinho a partir do que você digitar.'},
     categorias: {title:'Categorias', desc:'Os grupos são criados automaticamente ao lançar. Aqui você só renomeia ou desativa sem apagar o histórico.'},
-    fluxo: {title:'Fluxo de caixa', desc:'Santander, Nubank e o total das duas contas somadas, mês a mês.'},
+    fluxo: {title:'Fluxo de caixa', desc:'Santander, Nubank, Itaú e o total das três contas somadas, mês a mês.'},
     historico: {title:'Histórico mensal', desc:'Todos os meses já lançados, para comparar a evolução do negócio.'}
   };
 
@@ -919,6 +927,8 @@
     }
     var saldoSantander = allTimeSaldo('fc1');
     var saldoNubank = allTimeSaldo('fc2');
+    var saldoItau = allTimeSaldo('fc3');
+    var saldoTodasContas = saldoSantander + saldoNubank + saldoItau;
     var saldoAnteriorCombinadoAcumulado = cumulativeBalanceBeforeMonth(state.month);
 
     function barsHtml(bk, color){
@@ -953,12 +963,13 @@
         '<div class="panel-title">Receitas por grupo</div>' +
         '<div class="panel-sub">'+ (receitaBk.total>0 ? fmtBRL(receitaBk.total)+' no mês' : 'Sem receita registrada ainda') +'</div>' +
         barsHtml(receitaBk, 'var(--positive)') +
-        '<div class="stat-row" style="margin-top:16px;margin-bottom:0;grid-template-columns:1fr 1fr;">' +
+        '<div class="stat-row" style="margin-top:16px;margin-bottom:0;grid-template-columns:1fr 1fr 1fr;">' +
           '<div class="stat-card"><div class="stat-label">Saldo Santander</div><div class="stat-value '+(saldoSantander>=0?'positive':'negative')+'">'+fmtBRL(saldoSantander)+'</div></div>' +
           '<div class="stat-card"><div class="stat-label">Saldo Nubank</div><div class="stat-value '+(saldoNubank>=0?'positive':'negative')+'">'+fmtBRL(saldoNubank)+'</div></div>' +
+          '<div class="stat-card"><div class="stat-label">Saldo Itaú</div><div class="stat-value '+(saldoItau>=0?'positive':'negative')+'">'+fmtBRL(saldoItau)+'</div></div>' +
         '</div>' +
         '<div class="stat-row" style="margin-top:10px;margin-bottom:0;grid-template-columns:1fr;">' +
-          '<div class="stat-card"><div class="stat-label">Saldo Santander + Saldo Nubank</div><div class="stat-value '+((saldoSantander+saldoNubank)>=0?'positive':'negative')+'">'+fmtBRL(saldoSantander+saldoNubank)+'</div></div>' +
+          '<div class="stat-card"><div class="stat-label">Saldo Santander + Saldo Nubank + Saldo Itaú</div><div class="stat-value '+(saldoTodasContas>=0?'positive':'negative')+'">'+fmtBRL(saldoTodasContas)+'</div></div>' +
         '</div>' +
       '</div>' +
     '</div>' +
@@ -973,7 +984,7 @@
     var pasteHtml = READ_ONLY ? '' : ('' +
     '<div class="panel">' +
       '<div class="panel-title">Colar da planilha</div>' +
-      '<div class="panel-sub">Copie as linhas do LibreOffice (colunas A até K, na ordem: Data, Quem fez, Descrição, Grupo, Entrada Santander, Saída Santander, Resultado, Entrada Nubank, Saída Nubank, Resultado, Total) e cole aqui. As colunas de resultado são ignoradas — só o que tiver valor em Entrada/Saída vira lançamento novo.</div>' +
+      '<div class="panel-sub">Copie as linhas do LibreOffice (colunas A até O, na ordem: Data, Quem fez, Descrição, Grupo, Entrada Santander, Saída Santander, Resultado, Entrada Nubank, Saída Nubank, Resultado, Total Santander + Nubank + Itaú, coluna L vazia, Entrada Itaú, Saída Itaú, Resultado Itaú) e cole aqui. As colunas de resultado são ignoradas — só o que tiver valor em Entrada/Saída vira lançamento novo.</div>' +
       '<textarea class="paste-area" id="pasteArea" placeholder="Cole aqui as linhas copiadas do LibreOffice..."></textarea>' +
       '<button type="button" class="btn btn-primary" id="pasteBtn">Processar planilha colada</button>' +
       (state.pasteResultMsg ? '<div class="paste-result">'+escapeHtml(state.pasteResultMsg)+'</div>' : '<div class="paste-result" id="pasteResult"></div>') +
@@ -989,7 +1000,7 @@
     var formHtml = READ_ONLY ? '' : ('' +
     '<div class="panel">' +
       '<div class="panel-title">'+(editing ? 'Editar lançamento' : 'Novo lançamento')+'</div>' +
-      '<div class="panel-sub">Digite o grupo livremente — se ele ainda não existir, é criado na hora. Preencha só uma das quatro colunas de valor, na conta e direção certas.</div>' +
+      '<div class="panel-sub">Digite o grupo livremente — se ele ainda não existir, é criado na hora. Preencha só uma das seis colunas de valor, na conta e direção certas.</div>' +
       '<datalist id="categoryOptions">'+datalistOptions+'</datalist>' +
       '<div id="entryForm">' +
         '<div class="form-row">' +
@@ -1009,6 +1020,8 @@
           '<div class="field"><label>Santander — Entrada (R$)</label><input type="text" inputmode="decimal" name="santander_entrada" placeholder="0,00" value="'+(editing && contaOf(editing)==='fc1' && editing.type==='entrada' ? fmtNumberBR(editing.value) : '')+'"></div>' +
           '<div class="field"><label>Nubank — Saída (R$)</label><input type="text" inputmode="decimal" name="nubank_saida" placeholder="0,00" value="'+(editing && contaOf(editing)==='fc2' && editing.type==='saida' ? fmtNumberBR(editing.value) : '')+'"></div>' +
           '<div class="field"><label>Nubank — Entrada (R$)</label><input type="text" inputmode="decimal" name="nubank_entrada" placeholder="0,00" value="'+(editing && contaOf(editing)==='fc2' && editing.type==='entrada' ? fmtNumberBR(editing.value) : '')+'"></div>' +
+          '<div class="field"><label>Itaú — Saída (R$)</label><input type="text" inputmode="decimal" name="itau_saida" placeholder="0,00" value="'+(editing && contaOf(editing)==='fc3' && editing.type==='saida' ? fmtNumberBR(editing.value) : '')+'"></div>' +
+          '<div class="field"><label>Itaú — Entrada (R$)</label><input type="text" inputmode="decimal" name="itau_entrada" placeholder="0,00" value="'+(editing && contaOf(editing)==='fc3' && editing.type==='entrada' ? fmtNumberBR(editing.value) : '')+'"></div>' +
         '</div>' +
         '<div class="btn-row">' +
           '<button type="button" class="btn btn-primary" id="submitEntryBtn">'+(editing ? 'Salvar alterações' : 'Adicionar lançamento')+'</button>' +
@@ -1062,31 +1075,34 @@
         ? '<div class="empty-state">Nenhum lançamento encontrado com esses filtros.</div>'
         : '<div class="empty-state">Nenhum lançamento em '+fmtMonthLabel(state.month)+' ainda.'+(READ_ONLY ? '' : ' Use o formulário acima para adicionar entradas ou saídas.')+'</div>';
     } else {
-      rowsHtml = '<table><thead><tr><th>Data</th><th>Grupo</th><th>Descrição</th><th>Quem fez</th>' +
+      rowsHtml = '<div class="table-wrap"><table><thead><tr><th>Data</th><th>Grupo</th><th>Descrição</th><th>Quem fez</th>' +
         '<th style="text-align:right">Santander Saída</th><th style="text-align:right">Santander Entrada</th>' +
         '<th style="text-align:right">Nubank Saída</th><th style="text-align:right">Nubank Entrada</th>' +
+        '<th style="text-align:right">Itaú Saída</th><th style="text-align:right">Itaú Entrada</th>' +
         (READ_ONLY ? '' : '<th></th>')+'</tr></thead><tbody>' +
         list.map(function(e){
           var cat = categoryById(e.categoryId);
           var catName = cat ? cat.name : 'Categoria removida';
           var dateFmt = new Date(e.date + 'T00:00:00').toLocaleDateString('pt-BR');
-          var isFc1 = contaOf(e) === 'fc1';
+          var cEntry = contaOf(e);
           return '<tr>' +
             '<td>'+dateFmt+'</td>' +
             '<td>'+escapeHtml(catName)+(cat && !cat.active ? ' <span class="badge inactive">inativo</span>' : '')+'</td>' +
             '<td>'+escapeHtml(e.description)+'</td>' +
             '<td>'+escapeHtml(e.responsavel || '—')+'</td>' +
-            '<td class="num" style="color:var(--negative)">'+(isFc1 && e.type==='saida' ? fmtBRL(e.value) : '')+'</td>' +
-            '<td class="num" style="color:var(--positive)">'+(isFc1 && e.type==='entrada' ? fmtBRL(e.value) : '')+'</td>' +
-            '<td class="num" style="color:var(--negative)">'+(!isFc1 && e.type==='saida' ? fmtBRL(e.value) : '')+'</td>' +
-            '<td class="num" style="color:var(--positive)">'+(!isFc1 && e.type==='entrada' ? fmtBRL(e.value) : '')+'</td>' +
+            '<td class="num" style="color:var(--negative)">'+(cEntry==='fc1' && e.type==='saida' ? fmtBRL(e.value) : '')+'</td>' +
+            '<td class="num" style="color:var(--positive)">'+(cEntry==='fc1' && e.type==='entrada' ? fmtBRL(e.value) : '')+'</td>' +
+            '<td class="num" style="color:var(--negative)">'+(cEntry==='fc2' && e.type==='saida' ? fmtBRL(e.value) : '')+'</td>' +
+            '<td class="num" style="color:var(--positive)">'+(cEntry==='fc2' && e.type==='entrada' ? fmtBRL(e.value) : '')+'</td>' +
+            '<td class="num" style="color:var(--negative)">'+(cEntry==='fc3' && e.type==='saida' ? fmtBRL(e.value) : '')+'</td>' +
+            '<td class="num" style="color:var(--positive)">'+(cEntry==='fc3' && e.type==='entrada' ? fmtBRL(e.value) : '')+'</td>' +
             (READ_ONLY ? '' : ('<td><div class="row-actions">' +
               '<button class="icon-btn" data-edit-entry="'+e.id+'" title="Editar">✎</button>' +
               '<button class="icon-btn danger" data-delete-entry="'+e.id+'" title="Excluir">✕</button>' +
             '</div></td>')) +
           '</tr>';
         }).join('') +
-      '</tbody></table>';
+      '</tbody></table></div>';
     }
 
     var tituloLista = state.filters.data
@@ -1147,7 +1163,7 @@
   }
 
   function fluxoTableHtml(rows){
-    return '<table><thead><tr><th>Mês</th><th style="text-align:right">Receita do mês +<br>saldo mês anterior</th><th style="text-align:right">Despesa</th><th style="text-align:right">Resultado</th><th style="text-align:right">Acumulado</th></tr></thead><tbody>' +
+    return '<div class="table-wrap"><table><thead><tr><th>Mês</th><th style="text-align:right">Receita do mês +<br>saldo mês anterior</th><th style="text-align:right">Despesa</th><th style="text-align:right">Resultado</th><th style="text-align:right">Acumulado</th></tr></thead><tbody>' +
       rows.map(function(r){
         return '<tr>' +
           '<td style="text-transform:capitalize">'+fmtMonthLabel(r.month)+(r.month===state.month?' <span class="badge entrada">mês atual</span>':'')+'</td>' +
@@ -1157,7 +1173,7 @@
           '<td class="num" style="font-weight:600;color:'+(r.acumulado>=0?'var(--positive)':'var(--negative)')+'">'+fmtBRL(r.acumulado)+'</td>' +
         '</tr>';
       }).join('') +
-      '</tbody></table>';
+      '</tbody></table></div>';
   }
 
   function renderFluxo(){
@@ -1167,6 +1183,7 @@
     }
     var rows1 = buildFluxoRows('fc1');
     var rows2 = buildFluxoRows('fc2');
+    var rows3 = buildFluxoRows('fc3');
     var rowsTotal = buildFluxoRows(null);
 
     var t = monthTotals(state.month);
@@ -1175,6 +1192,7 @@
 
     var tSantander = monthTotals(state.month, 'fc1');
     var tNubank = monthTotals(state.month, 'fc2');
+    var tItau = monthTotals(state.month, 'fc3');
 
     function resultCard(label, valor){
       return '<div class="stat-row" style="grid-template-columns:1fr;margin-bottom:16px;">' +
@@ -1199,8 +1217,14 @@
       fluxoTableHtml(rows2) +
     '</div>' +
     '<div class="panel">' +
-      '<div class="panel-title">Total (Santander + Nubank)</div>' +
-      '<div class="panel-sub">A soma dos dois, mês a mês.</div>' +
+      '<div class="panel-title">Itaú</div>' +
+      '<div class="panel-sub">Só os lançamentos marcados como Itaú.</div>' +
+      resultCard('Receita do mês atual - Despesas do mês atual', tItau.resultado) +
+      fluxoTableHtml(rows3) +
+    '</div>' +
+    '<div class="panel">' +
+      '<div class="panel-title">Total (Santander + Nubank + Itaú)</div>' +
+      '<div class="panel-sub">A soma das três contas, mês a mês.</div>' +
       resultCard('Receita do mês atual - Despesas do mês atual', t.resultado) +
       fluxoTableHtml(rowsTotal) +
     '</div>';
@@ -1217,9 +1241,11 @@
       var t = monthTotals(m);
       var tSantander = monthTotals(m, 'fc1');
       var tNubank = monthTotals(m, 'fc2');
+      var tItau = monthTotals(m, 'fc3');
       var receitaMaisSaldoAnterior = t.receita + cumulativeBalanceBeforeMonth(m);
       var receitaSantanderPura = tSantander.receita - saldoAnteriorForMonth(m, 'fc1');
       var receitaNubankPura = tNubank.receita - saldoAnteriorForMonth(m, 'fc2');
+      var receitaItauPura = tItau.receita - saldoAnteriorForMonth(m, 'fc3');
       return '<div class="month-card" data-goto-month="'+m+'">' +
         '<div class="month-card-name">'+fmtMonthLabel(m)+'</div>' +
         '<div class="month-card-stats">' +
@@ -1228,8 +1254,10 @@
           '<div class="mc-stat"><div class="mc-stat-label">Resultado (Total)</div><div class="mc-stat-value" style="color:'+(t.resultado>=0?'var(--positive)':'var(--negative)')+'">'+fmtBRL(t.resultado)+'</div></div>' +
           '<div class="mc-stat"><div class="mc-stat-label">Resultado Santander</div><div class="mc-stat-value" style="color:'+(tSantander.resultado>=0?'var(--positive)':'var(--negative)')+'">'+fmtBRL(tSantander.resultado)+'</div></div>' +
           '<div class="mc-stat"><div class="mc-stat-label">Resultado Nubank</div><div class="mc-stat-value" style="color:'+(tNubank.resultado>=0?'var(--positive)':'var(--negative)')+'">'+fmtBRL(tNubank.resultado)+'</div></div>' +
+          '<div class="mc-stat"><div class="mc-stat-label">Resultado Itaú</div><div class="mc-stat-value" style="color:'+(tItau.resultado>=0?'var(--positive)':'var(--negative)')+'">'+fmtBRL(tItau.resultado)+'</div></div>' +
           '<div class="mc-stat"><div class="mc-stat-label">Receita do mês Santander</div><div class="mc-stat-value" style="color:var(--positive)">'+fmtBRL(receitaSantanderPura)+'</div></div>' +
           '<div class="mc-stat"><div class="mc-stat-label">Receita do mês Nubank</div><div class="mc-stat-value" style="color:var(--positive)">'+fmtBRL(receitaNubankPura)+'</div></div>' +
+          '<div class="mc-stat"><div class="mc-stat-label">Receita do mês Itaú</div><div class="mc-stat-value" style="color:var(--positive)">'+fmtBRL(receitaItauPura)+'</div></div>' +
         '</div>' +
       '</div>';
     }).join('');
@@ -1408,7 +1436,9 @@
           {name:'santander_saida', conta:'fc1', type:'saida'},
           {name:'santander_entrada', conta:'fc1', type:'entrada'},
           {name:'nubank_saida', conta:'fc2', type:'saida'},
-          {name:'nubank_entrada', conta:'fc2', type:'entrada'}
+          {name:'nubank_entrada', conta:'fc2', type:'entrada'},
+          {name:'itau_saida', conta:'fc3', type:'saida'},
+          {name:'itau_entrada', conta:'fc3', type:'entrada'}
         ];
         var filled = [];
         fields.forEach(function(f){
@@ -1417,7 +1447,7 @@
           if (!isNaN(val) && val > 0) filled.push({conta:f.conta, type:f.type, value: val});
         });
         if (filled.length > 1){
-          appAlert('Preencha só uma das quatro colunas de valor neste lançamento (Santander ou Nubank, Saída ou Entrada).');
+          appAlert('Preencha só uma das seis colunas de valor neste lançamento (Santander, Nubank ou Itaú; Saída ou Entrada).');
           return;
         }
         if (filled.length === 0){
@@ -1495,7 +1525,7 @@
       // Navegação estilo planilha: seta para a direita/esquerda pula para o
       // próximo campo quando o cursor já está no fim/início do texto.
       var navFields = Array.prototype.slice.call(
-        entryForm.querySelectorAll('input[type="date"], input[name="categoryName"], input[name="description"], input[name="responsavel"], input[name="santander_saida"], input[name="santander_entrada"], input[name="nubank_saida"], input[name="nubank_entrada"]')
+        entryForm.querySelectorAll('input[type="date"], input[name="categoryName"], input[name="description"], input[name="responsavel"], input[name="santander_saida"], input[name="santander_entrada"], input[name="nubank_saida"], input[name="nubank_entrada"], input[name="itau_saida"], input[name="itau_entrada"]')
       );
       navFields.forEach(function(input){
         input.addEventListener('keydown', function(ev){
