@@ -403,6 +403,7 @@
     import3Done: false,
     import4Done: false,
     import5Done: false,
+    import6Done: false,
     pasteResultMsg: '',
     filters: {data: '', mes: '', grupo: '', descricao: ''}
   };
@@ -724,6 +725,21 @@
     ['2026-09-05', 'saida', 500.00, 'Raimundo dos Santos (caixa)'],
     ['2026-09-05', 'entrada', 13476.40, 'Sauna']
   ];
+  // Saldo de abertura do Itaú (R$ 58,87 em 13/10/2026, sem outras movimentações):
+  // entra como "Saldo anterior" na coluna Entrada Itaú, igual foi feito com
+  // Santander e Nubank em setembro. Roda uma vez só e nunca duplica.
+  function runImportBatch6(){
+    var date = '2026-10-13', desc = 'Saldo anterior', value = 58.87;
+    var sig = [date, 'fc3', 'entrada', value, desc].join('|');
+    if (!entryAlreadyImported(sig)){
+      var cat = resolveCategory('Saldo anterior');
+      state.entries.push({
+        id: uid('entry'), date: date, type: 'entrada', conta: 'fc3',
+        categoryId: cat.id, description: desc, value: value, responsavel: ''
+      });
+    }
+    state.import6Done = true;
+  }
   function runImportBatch4(){
     var removeSigs = EXAMPLE_ROWS_TO_REMOVE.map(function(row){
       return [row[0], 'fc1', row[1], row[2], row[3]].join('|');
@@ -753,6 +769,7 @@
         state.import3Done = !!data.import3Done;
         state.import4Done = !!data.import4Done;
         state.import5Done = !!data.import5Done;
+        state.import6Done = !!data.import6Done;
       }
     }catch(e){ console.error('Falha ao carregar dados', e); }
 
@@ -769,6 +786,7 @@
       if (!state.import3Done){ runReplaceSantander(); ranSomething = true; }
       if (!state.import4Done){ runImportBatch4(); ranSomething = true; }
       if (!state.import5Done){ runCleanupDescriptions(); ranSomething = true; }
+      if (!state.import6Done){ runImportBatch6(); ranSomething = true; }
       if (ranSomething) saveAppData(); // não bloqueia a primeira tela
     }
   }
@@ -786,7 +804,8 @@
       import2Done: state.import2Done,
       import3Done: state.import3Done,
       import4Done: state.import4Done,
-      import5Done: state.import5Done
+      import5Done: state.import5Done,
+      import6Done: state.import6Done
     };
     try{
       var result = await sb.from('app_state').update({payload: payload, updated_at: new Date().toISOString()}).eq('id', 1);
