@@ -275,14 +275,16 @@
 
   /* ---------- Historico ---------- */
   .month-card{
-    display:flex;align-items:center;gap:18px;padding:16px 18px;
+    display:flex;flex-direction:column;align-items:stretch;gap:12px;padding:16px 18px;
     border:1px solid var(--border-soft);border-radius:var(--radius-md);margin-bottom:10px;
     background:var(--surface);cursor:pointer;transition:border-color .15s ease;
   }
   .month-card:hover{border-color:var(--text-faint);}
-  .month-card-name{font-family:var(--serif);font-size:15px;font-weight:600;width:150px;flex-shrink:0;text-transform:capitalize;}
+  .month-card-name{font-family:var(--serif);font-size:15px;font-weight:600;text-transform:capitalize;}
   .month-card-stats{display:flex;gap:26px;flex:1;flex-wrap:wrap;}
-  .mc-stat{min-width:90px;}
+  .mc-stat{min-width:170px;}
+  .mc-row{display:flex;gap:26px;flex-wrap:wrap;}
+  .mc-row + .mc-row{border-top:1px solid var(--border-soft);padding-top:12px;}
   .mc-stat-value{white-space:nowrap;}
   .mc-stat-label{font-size:10.5px;color:var(--text-faint);margin-bottom:2px;}
   .mc-stat-value{font-size:14px;font-weight:600;}
@@ -1182,7 +1184,7 @@
   }
 
   function fluxoTableHtml(rows){
-    return '<div class="table-wrap"><table><thead><tr><th>Mês</th><th style="text-align:right">Receita do mês +<br>saldo mês anterior</th><th style="text-align:right">Despesa</th><th style="text-align:right">Resultado</th><th style="text-align:right">Acumulado</th></tr></thead><tbody>' +
+    return '<div class="table-wrap"><table><thead><tr><th>Mês</th><th style="text-align:right">Receita do mês +<br>saldo mês anterior</th><th style="text-align:right">Despesa</th><th style="text-align:right">Resultado</th><th style="text-align:right">Acumulado do mês</th></tr></thead><tbody>' +
       rows.map(function(r){
         return '<tr>' +
           '<td style="text-transform:capitalize">'+fmtMonthLabel(r.month)+(r.month===state.month?' <span class="badge entrada">mês atual</span>':'')+'</td>' +
@@ -1256,28 +1258,36 @@
     if (withData.length === 0){
       return '<div class="panel"><div class="empty-state">Nenhum mês com lançamentos ainda. O histórico aparece aqui assim que você começar a lançar.</div></div>';
     }
+    function mcStat(label, valor, cor){
+      return '<div class="mc-stat"><div class="mc-stat-label">'+label+'</div><div class="mc-stat-value" style="color:'+cor+'">'+fmtBRL(valor)+'</div></div>';
+    }
+    function corSinal(v){ return v >= 0 ? 'var(--positive)' : 'var(--negative)'; }
+    // Uma linha por banco: receita do mês (sem o saldo anterior), despesas e resultado.
+    function linhaBanco(m, conta, nome){
+      var tc = monthTotals(m, conta);
+      var receita = tc.receita - saldoAnteriorForMonth(m, conta);
+      var despesa = tc.despesa;
+      var resultado = receita - despesa;
+      return '<div class="mc-row">' +
+        mcStat('Receita do mês ' + nome, receita, 'var(--positive)') +
+        mcStat('Despesas do mês ' + nome, despesa, 'var(--negative)') +
+        mcStat('Resultado do mês ' + nome, resultado, corSinal(resultado)) +
+      '</div>';
+    }
     return withData.map(function(m){
       var t = monthTotals(m);
-      var tSantander = monthTotals(m, 'fc1');
-      var tNubank = monthTotals(m, 'fc2');
-      var tItau = monthTotals(m, 'fc3');
       var receitaMaisSaldoAnterior = t.receita + cumulativeBalanceBeforeMonth(m);
-      var receitaSantanderPura = tSantander.receita - saldoAnteriorForMonth(m, 'fc1');
-      var receitaNubankPura = tNubank.receita - saldoAnteriorForMonth(m, 'fc2');
-      var receitaItauPura = tItau.receita - saldoAnteriorForMonth(m, 'fc3');
+      var receitaPuraTotal = t.receita - saldoAnteriorForMonth(m);
+      var receitaMenosDespesa = receitaPuraTotal - t.despesa;
       return '<div class="month-card" data-goto-month="'+m+'">' +
         '<div class="month-card-name">'+fmtMonthLabel(m)+'</div>' +
-        '<div class="month-card-stats">' +
-          '<div class="mc-stat"><div class="mc-stat-label">Receita do mês + saldo anterior</div><div class="mc-stat-value" style="color:var(--positive)">'+fmtBRL(receitaMaisSaldoAnterior)+'</div></div>' +
-          '<div class="mc-stat"><div class="mc-stat-label">Despesa</div><div class="mc-stat-value" style="color:var(--negative)">'+fmtBRL(t.despesa)+'</div></div>' +
-          '<div class="mc-stat"><div class="mc-stat-label">Resultado (Total)</div><div class="mc-stat-value" style="color:'+(t.resultado>=0?'var(--positive)':'var(--negative)')+'">'+fmtBRL(t.resultado)+'</div></div>' +
-          '<div class="mc-stat"><div class="mc-stat-label">Resultado Santander</div><div class="mc-stat-value" style="color:'+(tSantander.resultado>=0?'var(--positive)':'var(--negative)')+'">'+fmtBRL(tSantander.resultado)+'</div></div>' +
-          '<div class="mc-stat"><div class="mc-stat-label">Resultado Nubank</div><div class="mc-stat-value" style="color:'+(tNubank.resultado>=0?'var(--positive)':'var(--negative)')+'">'+fmtBRL(tNubank.resultado)+'</div></div>' +
-          '<div class="mc-stat"><div class="mc-stat-label">Resultado Itaú</div><div class="mc-stat-value" style="color:'+(tItau.resultado>=0?'var(--positive)':'var(--negative)')+'">'+fmtBRL(tItau.resultado)+'</div></div>' +
-          '<div class="mc-stat"><div class="mc-stat-label">Receita do mês Santander</div><div class="mc-stat-value" style="color:var(--positive)">'+fmtBRL(receitaSantanderPura)+'</div></div>' +
-          '<div class="mc-stat"><div class="mc-stat-label">Receita do mês Nubank</div><div class="mc-stat-value" style="color:var(--positive)">'+fmtBRL(receitaNubankPura)+'</div></div>' +
-          '<div class="mc-stat"><div class="mc-stat-label">Receita do mês Itaú</div><div class="mc-stat-value" style="color:var(--positive)">'+fmtBRL(receitaItauPura)+'</div></div>' +
+        '<div class="mc-row">' +
+          mcStat('Receita do mês + saldo anterior', receitaMaisSaldoAnterior, 'var(--positive)') +
+          mcStat('Receita do mês dos 3 bancos menos despesas dos 3 bancos', receitaMenosDespesa, corSinal(receitaMenosDespesa)) +
         '</div>' +
+        linhaBanco(m, 'fc1', 'Santander') +
+        linhaBanco(m, 'fc2', 'Nubank') +
+        linhaBanco(m, 'fc3', 'Itaú') +
       '</div>';
     }).join('');
   }
