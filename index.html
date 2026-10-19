@@ -1223,7 +1223,7 @@
 
     return '' +
     '<div class="stat-row" style="grid-template-columns:1fr;">' +
-      '<div class="stat-card"><div class="stat-label">Receita do mês menos despesas do mês</div><div class="stat-value '+(resultadoSemSaldoAnterior>=0?'positive':'negative')+'">'+fmtBRL(resultadoSemSaldoAnterior)+'</div></div>' +
+      '<div class="stat-card"><div class="stat-label">Receita do mês menos despesas do mês Santander, Nubank e Itaú</div><div class="stat-value '+(resultadoSemSaldoAnterior>=0?'positive':'negative')+'">'+fmtBRL(resultadoSemSaldoAnterior)+'</div></div>' +
     '</div>' +
     '<div class="panel">' +
       '<div class="panel-title">Santander</div>' +
@@ -1283,7 +1283,7 @@
         '<div class="month-card-name">'+fmtMonthLabel(m)+'</div>' +
         '<div class="mc-row">' +
           mcStat('Receita do mês + saldo anterior', receitaMaisSaldoAnterior, 'var(--positive)') +
-          mcStat('Receita do mês dos 3 bancos menos despesas dos 3 bancos', receitaMenosDespesa, corSinal(receitaMenosDespesa)) +
+          mcStat('Receita do mês - despesas do mês Santander / Nubank / Itaú', receitaMenosDespesa, corSinal(receitaMenosDespesa)) +
         '</div>' +
         linhaBanco(m, 'fc1', 'Santander') +
         linhaBanco(m, 'fc2', 'Nubank') +
