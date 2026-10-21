@@ -18,6 +18,7 @@
     --text:#F3ECDF;
     --text-muted:#B0A290;
     --text-faint:#7A6E5C;
+    --label:#DCD0BA;
     --positive:#83A374;
     --positive-soft:rgba(131,163,116,0.14);
     --negative:#C1624A;
@@ -150,8 +151,8 @@
     background:var(--surface);border:1px solid var(--border-soft);
     border-radius:var(--radius-md);padding:12px 14px;min-width:0;
   }
-  .stat-label{font-size:10.5px;color:var(--text-faint);margin-bottom:6px;line-height:1.3;}
-  .stat-value{font-family:var(--serif);font-size:clamp(15px, 1.5vw, 20px);font-weight:600;white-space:normal;overflow-wrap:anywhere;line-height:1.2;}
+  .stat-label{font-size:10.5px;color:var(--label);font-weight:600;margin-bottom:6px;line-height:1.3;}
+  .stat-value{font-family:var(--serif);font-size:clamp(15px, 1.5vw, 20px);font-weight:600;white-space:nowrap;line-height:1.2;}
   .stat-value.positive{color:var(--positive);}
   .stat-value.negative{color:var(--negative);}
 
@@ -160,7 +161,7 @@
     border-radius:var(--radius-md);padding:22px 24px;margin-bottom:20px;
   }
   .panel-title{font-family:var(--serif);font-size:16px;font-weight:600;margin-bottom:4px;}
-  .panel-sub{font-size:12px;color:var(--text-faint);margin-bottom:18px;}
+  .panel-sub{font-size:12px;color:var(--text-muted);margin-bottom:18px;}
 
   .two-col{display:grid;grid-template-columns:1.1fr 0.9fr;gap:16px;align-items:start;}
   .two-col > *{min-width:0;}
@@ -172,7 +173,7 @@
   .bar-label{width:120px;flex-shrink:0;font-size:12.5px;color:var(--text-muted);white-space:normal;overflow-wrap:anywhere;line-height:1.25;}
   .bar-track{flex:1;height:8px;background:var(--bg-soft);border-radius:4px;overflow:hidden;}
   .bar-fill{height:100%;border-radius:4px;}
-  .bar-pct{min-width:48px;flex-shrink:0;font-size:12px;color:var(--text-faint);text-align:right;white-space:nowrap;}
+  .bar-pct{min-width:48px;flex-shrink:0;font-size:12px;color:var(--text-muted);text-align:right;white-space:nowrap;}
   .bar-value{min-width:84px;flex-shrink:0;font-size:12px;color:var(--text-muted);text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;}
   .bar-track{min-width:40px;}
 
@@ -240,7 +241,7 @@
   table{width:100%;border-collapse:collapse;}
   th{
     text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.04em;
-    color:var(--text-faint);font-weight:600;padding:0 8px 10px;border-bottom:1px solid var(--border-soft);
+    color:var(--label);font-weight:600;padding:0 8px 10px;border-bottom:1px solid var(--border-soft);
   }
   td{padding:11px 8px;font-size:13.5px;border-bottom:1px solid var(--border-soft);vertical-align:middle;}
   tr:last-child td{border-bottom:none;}
@@ -286,7 +287,7 @@
   .mc-row{display:flex;gap:26px;flex-wrap:wrap;}
   .mc-row + .mc-row{border-top:1px solid var(--border-soft);padding-top:12px;}
   .mc-stat-value{white-space:nowrap;}
-  .mc-stat-label{font-size:10.5px;color:var(--text-faint);margin-bottom:2px;}
+  .mc-stat-label{font-size:10.5px;color:var(--label);font-weight:600;margin-bottom:2px;}
   .mc-stat-value{font-size:14px;font-weight:600;}
 
   @media (max-width: 760px){
@@ -300,6 +301,7 @@
     nav{flex-direction:row;}
     .content{padding:22px 18px 50px;}
     .stat-row{grid-template-columns:1fr;}
+    .panel .stat-row{grid-template-columns:1fr !important;}
     .two-col{grid-template-columns:1fr;}
   }
 </style>
@@ -923,6 +925,19 @@
     render();
   }
 
+  // Faz cada valor dos cards caber inteiro, numa linha só: se o número for
+  // maior que o card, a fonte diminui aos poucos (sem nunca passar do tamanho original).
+  function fitNumbers(){
+    document.querySelectorAll('.stat-value').forEach(function(el){
+      el.style.fontSize = '';
+      var size = parseFloat(getComputedStyle(el).fontSize);
+      while (el.scrollWidth > el.clientWidth + 0.5 && size > 10){
+        size -= 0.5;
+        el.style.fontSize = size + 'px';
+      }
+    });
+  }
+  window.addEventListener('resize', fitNumbers);
   function render(){
     document.getElementById('monthLabel').textContent = fmtMonthLabel(state.month);
     var root = document.getElementById('viewRoot');
@@ -932,6 +947,7 @@
     else if (state.view === 'fluxo') root.innerHTML = renderFluxo();
     else if (state.view === 'historico') root.innerHTML = renderHistorico();
     attachViewHandlers();
+    fitNumbers();
   }
 
   // ---------- Dashboard ----------
