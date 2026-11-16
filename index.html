@@ -1195,20 +1195,22 @@
       acumulado += t.resultado;
       // Receita do mês + saldo do mês anterior (acumulado de tudo que veio antes deste mês, da própria conta)
       var receitaComSaldo = t.receita + cumulativeBalanceBeforeMonth(m, conta);
-      return {month:m, t:t, acumulado:acumulado, receitaComSaldo:receitaComSaldo};
+      // Receita do mês (sem o saldo anterior lançado) menos despesas do mês
+      var resultadoMes = t.receita - saldoAnteriorForMonth(m, conta) - t.despesa;
+      return {month:m, t:t, acumulado:acumulado, receitaComSaldo:receitaComSaldo, resultadoMes:resultadoMes};
     });
     rows.reverse();
     return rows;
   }
 
   function fluxoTableHtml(rows){
-    return '<div class="table-wrap"><table><thead><tr><th>Mês</th><th style="text-align:right">Receita do mês +<br>saldo mês anterior</th><th style="text-align:right">Despesa</th><th style="text-align:right">Resultado</th><th style="text-align:right">Acumulado do mês</th></tr></thead><tbody>' +
+    return '<div class="table-wrap"><table><thead><tr><th>Mês</th><th style="text-align:right">Receita do mês +<br>saldo mês anterior</th><th style="text-align:right">Despesas do mês</th><th style="text-align:right">Receita do mês menos<br>despesas do mês</th><th style="text-align:right">Acumulado do mês</th></tr></thead><tbody>' +
       rows.map(function(r){
         return '<tr>' +
           '<td style="text-transform:capitalize">'+fmtMonthLabel(r.month)+(r.month===state.month?' <span class="badge entrada">mês atual</span>':'')+'</td>' +
           '<td class="num" style="color:'+(r.receitaComSaldo>=0?'var(--positive)':'var(--negative)')+'">'+fmtBRL(r.receitaComSaldo)+'</td>' +
           '<td class="num" style="color:var(--negative)">'+fmtBRL(r.t.despesa)+'</td>' +
-          '<td class="num" style="color:'+(r.t.resultado>=0?'var(--positive)':'var(--negative)')+'">'+fmtBRL(r.t.resultado)+'</td>' +
+          '<td class="num" style="color:'+(r.resultadoMes>=0?'var(--positive)':'var(--negative)')+'">'+fmtBRL(r.resultadoMes)+'</td>' +
           '<td class="num" style="font-weight:600;color:'+(r.acumulado>=0?'var(--positive)':'var(--negative)')+'">'+fmtBRL(r.acumulado)+'</td>' +
         '</tr>';
       }).join('') +
