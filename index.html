@@ -238,6 +238,14 @@
 
   /* ---------- Table / list ---------- */
   .table-wrap{overflow-x:auto;max-width:100%;}
+  .limit-block{margin-top:16px;padding-top:14px;border-top:1px solid var(--border-soft);}
+  .limit-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap;}
+  .limit-title{font-family:var(--serif);font-size:15px;font-weight:600;}
+  .limit-bar{height:10px;background:var(--bg-soft);border-radius:6px;overflow:hidden;}
+  .limit-fill{height:100%;border-radius:6px;}
+  .limit-msg{font-size:12.5px;margin-top:10px;line-height:1.45;}
+  .check-row{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--text-muted);margin:2px 0 12px;}
+  .check-row input{width:auto;}
   table{width:100%;border-collapse:collapse;}
   th{
     text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.04em;
@@ -366,7 +374,9 @@
   }
 
   function fmtBRL(v){
-    return new Intl.NumberFormat('pt-BR', {style:'currency', currency:'BRL'}).format(v || 0);
+    v = Math.round((Number(v) || 0) * 100) / 100;
+    if (v === 0) v = 0;   // evita "-R$ 0,00" (zero negativo)
+    return new Intl.NumberFormat('pt-BR', {style:'currency', currency:'BRL'}).format(v);
   }
   // Formata um número pra reaparecer num campo de texto editável, no padrão
   // brasileiro (vírgula decimal), sem o "R$" na frente.
@@ -408,6 +418,10 @@
     import4Done: false,
     import5Done: false,
     import6Done: false,
+    import7Done: false,
+    import8Done: false,
+    settings: {cardLimit: 5000, cardAlertPct: 80},
+    transferDraft: null,
     pasteResultMsg: '',
     filters: {data: '', mes: '', grupo: '', descricao: ''}
   };
@@ -426,9 +440,21 @@
       {id: uid('cat'), name:'Outros', active:true, createdAt: Date.now()}
     ];
   }
+  // Compara textos sem diferenciar maiúsculas/minúsculas nem acentos ("Elétrica" = "eletrica" = "ELETRICA").
+  function fold(str){
+    return String(str == null ? '' : str).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/\s+/g,' ').trim();
+  }
   function findCategoryByName(name){
-    var norm = name.trim().toLowerCase();
-    return state.categories.find(function(c){ return c.name.trim().toLowerCase() === norm; });
+    var norm = fold(name);
+    return state.categories.find(function(c){ return fold(c.name) === norm; });
+  }
+  // Se já existe alguém com o mesmo nome (ignorando maiúsculas/acentos), usa a grafia já existente.
+  function canonResp(name){
+    var n = (name || '').trim();
+    if (!n) return '';
+    var f = fold(n);
+    var hit = state.entries.find(function(e){ return e.responsavel && fold(e.responsavel) === f; });
+    return hit ? hit.responsavel : n;
   }
   // Finds an existing group by name (case-insensitive) or creates a new one on
   // the spot. Reactivates it automatically if it had been deactivated, since
@@ -529,9 +555,11 @@
   // Assinatura única de um lançamento, usada só pra nunca importar a mesma
   // linha duas vezes, mesmo que a rotina rode mais de uma vez.
   function entrySignature(e){
-    return [e.date, e.conta, e.type, e.value, e.description].join('|');
+    return [e.date, e.conta, e.type, e.value, fold(e.description)].join('|');
   }
   function entryAlreadyImported(sig){
+    var parts = String(sig).split('|');
+    sig = parts.slice(0,4).concat([fold(parts.slice(4).join('|'))]).join('|');
     return state.entries.some(function(e){ return entrySignature(e) === sig; });
   }
 
@@ -588,7 +616,7 @@
         var cat = resolveCategory(grupo);
         state.entries.push({
           id: uid('entry'), date: date, type: c.type, conta: c.conta,
-          categoryId: cat.id, description: desc, value: value, responsavel: quemFez
+          categoryId: cat.id, description: desc, value: value, responsavel: canonResp(quemFez), transf: looksLikeTransfer(desc, grupo)
         });
         added++;
       });
@@ -744,6 +772,59 @@
     }
     state.import6Done = true;
   }
+  // Detecta lançamentos que são movimentação entre as próprias contas (ex.: "Santander para Itaú")
+  // ou pagamento do cartão do Itaú. Eles não são receita nem despesa.
+  function looksLikeTransfer(desc, catName){
+    var d = fold(desc);
+    var c = fold(catName);
+    if (/\b(santander|nubank|itau)\s*\d*\s+para\s+(santander|nubank|itau)/.test(d)) return true;
+    if ((c === 'itau' || c === 'cartao') && /(pagamento|cartao)/.test(d)) return true;
+    return false;
+  }
+  // Migração única: marca como transferência o que já foi lançado assim.
+  function runImportBatch7(){
+    state.entries.forEach(function(e){
+      if (e.transf) return;
+      var c = categoryById(e.categoryId);
+      if (looksLikeTransfer(e.description, c ? c.name : '')) e.transf = true;
+    });
+    state.import7Done = true;
+  }
+  // Lança os dois lados de uma transferência (saída na origem + entrada no destino).
+  // Junta grupos e nomes que só diferiam por maiúscula/acento (ex.: "Elétrica" e "eletrica"; "Tuka" e "tuka").
+  function runImportBatch8(){
+    var keep = {}, remap = {};
+    state.categories.forEach(function(c){
+      var f = fold(c.name);
+      if (!keep[f]) keep[f] = c;
+      else { remap[c.id] = keep[f].id; if (c.active) keep[f].active = true; }
+    });
+    if (Object.keys(remap).length){
+      state.entries.forEach(function(e){ if (remap[e.categoryId]) e.categoryId = remap[e.categoryId]; });
+      state.categories = state.categories.filter(function(c){ return !remap[c.id]; });
+    }
+    var count = {}, best = {};
+    state.entries.forEach(function(e){
+      if (!e.responsavel) return;
+      var f = fold(e.responsavel), k = f+'|'+e.responsavel;
+      count[k] = (count[k]||0)+1;
+      if (!best[f] || count[k] > count[f+'|'+best[f]]) best[f] = e.responsavel;
+    });
+    state.entries.forEach(function(e){ if (e.responsavel) e.responsavel = best[fold(e.responsavel)]; });
+    state.import8Done = true;
+  }
+  function postTransfer(data, de, para, valor, quem){
+    var cat = resolveCategory('Transferência');
+    var desc = CONTA_LABELS[de] + ' para ' + CONTA_LABELS[para];
+    state.entries.push({id: uid('entry'), date: data, type: 'saida', conta: de, categoryId: cat.id, description: desc, value: valor, responsavel: canonResp(quem), transf: true});
+    state.entries.push({id: uid('entry'), date: data, type: 'entrada', conta: para, categoryId: cat.id, description: desc, value: valor, responsavel: canonResp(quem), transf: true});
+  }
+  function saldoDaConta(conta){
+    return round2(state.entries
+      .filter(function(e){ return contaOf(e) === conta; })
+      .reduce(function(s, e){ return s + (e.type === 'entrada' ? Number(e.value) : -Number(e.value)); }, 0));
+  }
+  function round2(x){ x = Math.round(x * 100) / 100; return x === 0 ? 0 : x; }
   function runImportBatch4(){
     var removeSigs = EXAMPLE_ROWS_TO_REMOVE.map(function(row){
       return [row[0], 'fc1', row[1], row[2], row[3]].join('|');
@@ -774,6 +855,11 @@
         state.import4Done = !!data.import4Done;
         state.import5Done = !!data.import5Done;
         state.import6Done = !!data.import6Done;
+        state.import7Done = !!data.import7Done;
+        state.import8Done = !!data.import8Done;
+        if (data.settings && typeof data.settings === 'object'){
+          state.settings = Object.assign({cardLimit: 5000, cardAlertPct: 80}, data.settings);
+        }
       }
     }catch(e){ console.error('Falha ao carregar dados', e); }
 
@@ -791,15 +877,44 @@
       if (!state.import4Done){ runImportBatch4(); ranSomething = true; }
       if (!state.import5Done){ runCleanupDescriptions(); ranSomething = true; }
       if (!state.import6Done){ runImportBatch6(); ranSomething = true; }
+      if (!state.import7Done){ runImportBatch7(); ranSomething = true; }
+      if (!state.import8Done){ runImportBatch8(); ranSomething = true; }
       if (ranSomething) saveAppData(); // não bloqueia a primeira tela
     }
+    undoBase = snapNow(); undoStack = [];
   }
   function setSaveStatus(text, color){
     var el = document.getElementById('saveStatus');
     if (el){ el.textContent = text; el.style.color = color || ''; }
   }
+  // ---------- Desfazer ----------
+  var undoStack = [], undoBase = null, undoing = false;
+  function snapNow(){ return JSON.stringify({categories: state.categories, entries: state.entries}); }
+  function updateUndoBtn(){
+    var b = document.getElementById('undoBtn');
+    if (!b) return;
+    var n = undoStack.length;
+    b.disabled = !n; b.style.opacity = n ? '' : '.5'; b.style.cursor = n ? '' : 'not-allowed';
+    b.textContent = '↶ Voltar ao estado anterior' + (n ? ' ('+n+')' : '');
+  }
+  function undoLast(){
+    if (!undoStack.length) return;
+    var snap = JSON.parse(undoStack.pop());
+    state.categories = snap.categories; state.entries = snap.entries;
+    state.editingEntryId = null;
+    undoing = true; undoBase = snapNow();
+    render();
+    saveAppData();
+  }
   async function saveAppData(){
     if (READ_ONLY) return;
+    if (undoing){ undoing = false; }
+    else {
+      var cur = snapNow();
+      if (undoBase !== null && undoBase !== cur){ undoStack.push(undoBase); if (undoStack.length > 30) undoStack.shift(); }
+      undoBase = cur;
+    }
+    updateUndoBtn();
     setSaveStatus('Salvando...', 'var(--text-faint)');
     var payload = {
       categories: state.categories,
@@ -809,7 +924,10 @@
       import3Done: state.import3Done,
       import4Done: state.import4Done,
       import5Done: state.import5Done,
-      import6Done: state.import6Done
+      import6Done: state.import6Done,
+      import7Done: state.import7Done,
+      import8Done: state.import8Done,
+      settings: state.settings
     };
     try{
       var result = await sb.from('app_state').update({payload: payload, updated_at: new Date().toISOString()}).eq('id', 1);
@@ -842,15 +960,26 @@
   function entriesForMonth(monthKey){
     return state.entries.filter(function(e){ return e.date.slice(0,7) === monthKey; });
   }
+  // Ajustes de limite do cartão só acertam o saldo da conta: nunca contam como receita/despesa.
+  // Transferências entre contas contam como receita/despesa (como sempre foi), a não ser que
+  // settings.excludeTransfers esteja ligado.
+  function isAdjust(e){ return !!(e.ajuste || e.responsavel === 'ajuste'); }
+  function excludedFromTotals(e){ return isAdjust(e) || (!!e.transf && !!state.settings.excludeTransfers); }
   function monthTotals(monthKey, conta){
     var list = entriesForMonth(monthKey);
     if (conta) list = list.filter(function(e){ return contaOf(e) === conta; });
-    var receita = 0, despesa = 0;
+    var receita = 0, despesa = 0, transfIn = 0, transfOut = 0;
     list.forEach(function(e){
-      if (e.type === 'entrada') receita += Number(e.value);
-      else if (e.type === 'saida') despesa += Number(e.value);
+      var v = Number(e.value);
+      if (excludedFromTotals(e)){
+        if (e.type === 'entrada') transfIn += v;
+        else if (e.type === 'saida') transfOut += v;
+        return;
+      }
+      if (e.type === 'entrada') receita += v;
+      else if (e.type === 'saida') despesa += v;
     });
-    return {receita: receita, despesa: despesa, resultado: receita - despesa, count: list.length};
+    return {receita: receita, despesa: despesa, resultado: receita - despesa, count: list.length, transfIn: transfIn, transfOut: transfOut};
   }
   // Soma dos lançamentos do grupo "Saldo anterior" (entrada) num mês —
   // opcionalmente só de uma conta (fc1/fc2/fc3); sem conta, soma todas.
@@ -876,7 +1005,7 @@
     return state.categories.find(function(c){ return c.id === id; });
   }
   function categoryBreakdown(monthKey, type){
-    var list = entriesForMonth(monthKey).filter(function(e){ return e.type === type; });
+    var list = entriesForMonth(monthKey).filter(function(e){ return e.type === type && !excludedFromTotals(e); });
     var total = list.reduce(function(s,e){ return s + Number(e.value); }, 0);
     var byCat = {};
     list.forEach(function(e){
@@ -915,6 +1044,7 @@
   function setView(view){
     state.view = view;
     state.editingEntryId = null;
+    if (view !== 'lancamentos') state.transferDraft = null;
     document.querySelectorAll('.nav-item').forEach(function(btn){
       btn.classList.toggle('active', btn.dataset.view === view);
     });
@@ -957,15 +1087,38 @@
     var receitaBk = categoryBreakdown(state.month, 'entrada');
     var saldoAnteriorDoMes = saldoAnteriorForMonth(state.month);
     var resultadoSemSaldoAnterior = t.receita - t.despesa - saldoAnteriorDoMes;
-    function allTimeSaldo(conta){
-      return state.entries
-        .filter(function(e){ return contaOf(e) === conta; })
-        .reduce(function(s, e){ return s + (e.type === 'entrada' ? Number(e.value) : -Number(e.value)); }, 0);
-    }
+    function allTimeSaldo(conta){ return saldoDaConta(conta); }
     var saldoSantander = allTimeSaldo('fc1');
     var saldoNubank = allTimeSaldo('fc2');
     var saldoItau = allTimeSaldo('fc3');
     var saldoTodasContas = saldoSantander + saldoNubank + saldoItau;
+    // Limite do cartão do Itaú: o saldo negativo da conta é o quanto do limite já foi usado
+    // (o limite volta na hora que a transferência para pagar o cartão é lançada).
+    var limite = Number(state.settings.cardLimit) || 5000;
+    var alertaPct = Number(state.settings.cardAlertPct) || 80;
+    var usado = round2(Math.max(0, -saldoItau));
+    var disponivel = Math.max(0, limite - usado);
+    var pctUsado = limite > 0 ? usado / limite * 100 : 0;
+    var corLimite = pctUsado >= alertaPct ? 'var(--negative)' : (pctUsado >= 60 ? 'var(--accent)' : 'var(--positive)');
+    var msgLimite;
+    if (usado <= 0) msgLimite = 'Nenhum limite usado agora. Transfira para o Itaú quando o uso passar de '+alertaPct+'% ('+fmtBRL(limite*alertaPct/100)+').';
+    else if (pctUsado >= 100) msgLimite = '⚠ Limite estourado em '+fmtBRL(usado-limite)+'. Transfira '+fmtBRL(usado)+' do Santander para o Itaú agora.';
+    else if (pctUsado >= alertaPct) msgLimite = '⚠ Perto do limite: transfira '+fmtBRL(usado)+' do Santander para o Itaú para voltar a ter '+fmtBRL(limite)+' disponíveis.';
+    else msgLimite = 'Dentro do limite. Transfira para o Itaú quando o uso passar de '+alertaPct+'% ('+fmtBRL(limite*alertaPct/100)+').';
+    var limitHtml = '<div class="limit-block">' +
+      '<div class="limit-head"><div class="limit-title">Limite do cartão Itaú</div>' +
+        (READ_ONLY ? '' : '<button type="button" class="chip" id="limEditBtn">Limite '+fmtBRL(limite)+' ✎</button>') + '</div>' +
+      '<div class="limit-bar"><div class="limit-fill" style="width:'+Math.min(100,pctUsado).toFixed(1)+'%;background:'+corLimite+'"></div></div>' +
+      '<div class="stat-row" style="margin:10px 0 0 0;grid-template-columns:1fr 1fr 1fr;">' +
+        '<div class="stat-card"><div class="stat-label">Usado</div><div class="stat-value" style="color:'+corLimite+'">'+fmtBRL(usado)+'</div></div>' +
+        '<div class="stat-card"><div class="stat-label">Disponível</div><div class="stat-value positive">'+fmtBRL(disponivel)+'</div></div>' +
+        '<div class="stat-card"><div class="stat-label">% do limite usado</div><div class="stat-value" style="color:'+corLimite+'">'+pctUsado.toFixed(1).replace('.', ',')+'%</div></div>' +
+      '</div>' +
+      '<div class="limit-msg" style="color:'+(usado>0 && pctUsado>=alertaPct ? 'var(--negative)' : 'var(--text-muted)')+'">'+msgLimite+'</div>' +
+      (READ_ONLY ? '' : '<div class="btn-row" style="margin-top:10px;">' +
+        (usado > 0 ? '<button type="button" class="btn btn-primary" id="limTransferBtn">Transferir '+fmtBRL(usado)+' do Santander</button>' : '') +
+        '<button type="button" class="btn btn-ghost" id="limAjusteBtn">Ajustar ao limite do app Itaú</button></div>') +
+    '</div>';
     var saldoAnteriorCombinadoAcumulado = cumulativeBalanceBeforeMonth(state.month);
 
     function barsHtml(bk, color){
@@ -1008,6 +1161,7 @@
         '<div class="stat-row" style="margin-top:10px;margin-bottom:0;grid-template-columns:1fr;">' +
           '<div class="stat-card"><div class="stat-label">Saldo Santander + Saldo Nubank + Saldo Itaú</div><div class="stat-value '+(saldoTodasContas>=0?'positive':'negative')+'">'+fmtBRL(saldoTodasContas)+'</div></div>' +
         '</div>' +
+        limitHtml +
       '</div>' +
     '</div>' +
     (t.count === 0 ? '<div class="empty-state">Nenhum lançamento em '+fmtMonthLabel(state.month)+'. Vá em <strong>Lançamentos</strong> para adicionar o primeiro.</div>' : '');
@@ -1047,8 +1201,8 @@
           '<div class="field grow"><label>Quem fez a movimentação</label>' +
             '<input type="text" name="responsavel" id="responsavelInput" placeholder="Nome da pessoa" value="'+(editing ? escapeAttr(editing.responsavel || '') : '')+'">' +
             '<div class="chip-row">' +
-              '<button type="button" class="chip resp-chip'+((editing && editing.responsavel==='Tuka') ? ' active' : '')+'" data-name="Tuka">Tuka</button>' +
-              '<button type="button" class="chip resp-chip'+((editing && editing.responsavel==='Marcio') ? ' active' : '')+'" data-name="Marcio">Marcio</button>' +
+              '<button type="button" class="chip resp-chip'+((editing && fold(editing.responsavel)==='tuka') ? ' active' : '')+'" data-name="Tuka">Tuka</button>' +
+              '<button type="button" class="chip resp-chip'+((editing && fold(editing.responsavel)==='marcio') ? ' active' : '')+'" data-name="Marcio">Marcio</button>' +
             '</div>' +
           '</div>' +
         '</div>' +
@@ -1060,6 +1214,7 @@
           '<div class="field"><label>Itaú — Saída (R$)</label><input type="text" inputmode="decimal" name="itau_saida" placeholder="0,00" value="'+(editing && contaOf(editing)==='fc3' && editing.type==='saida' ? fmtNumberBR(editing.value) : '')+'"></div>' +
           '<div class="field"><label>Itaú — Entrada (R$)</label><input type="text" inputmode="decimal" name="itau_entrada" placeholder="0,00" value="'+(editing && contaOf(editing)==='fc3' && editing.type==='entrada' ? fmtNumberBR(editing.value) : '')+'"></div>' +
         '</div>' +
+        '<label class="check-row"><input type="checkbox" id="transfInput"'+(editing && editing.transf ? ' checked' : '')+'> Transferência entre contas</label>' +
         '<div class="btn-row">' +
           '<button type="button" class="btn btn-primary" id="submitEntryBtn">'+(editing ? 'Salvar alterações' : 'Adicionar lançamento')+'</button>' +
           (editing ? '<button type="button" class="btn btn-ghost" id="cancelEdit">Cancelar</button>' : '') +
@@ -1075,11 +1230,11 @@
     var list = baseList.filter(function(e){
       if (state.filters.grupo){
         var c = categoryById(e.categoryId);
-        if (!c || c.name !== state.filters.grupo) return false;
+        if (!c || fold(c.name) !== fold(state.filters.grupo)) return false;
       }
       if (state.filters.descricao){
-        var needle = state.filters.descricao.toLowerCase();
-        if (e.description.toLowerCase().indexOf(needle) === -1) return false;
+        var needle = fold(state.filters.descricao);
+        if (fold(e.description).indexOf(needle) === -1) return false;
       }
       return true;
     }).slice().sort(function(a,b){ return b.date.localeCompare(a.date); });
@@ -1124,7 +1279,7 @@
           var cEntry = contaOf(e);
           return '<tr>' +
             '<td>'+dateFmt+'</td>' +
-            '<td>'+escapeHtml(catName)+(cat && !cat.active ? ' <span class="badge inactive">inativo</span>' : '')+'</td>' +
+            '<td>'+escapeHtml(catName)+(cat && !cat.active ? ' <span class="badge inactive">inativo</span>' : '')+(e.transf ? ' <span class="badge inactive">transferência</span>' : '')+'</td>' +
             '<td>'+escapeHtml(e.description)+'</td>' +
             '<td>'+escapeHtml(e.responsavel || '—')+'</td>' +
             '<td class="num" style="color:var(--negative)">'+(cEntry==='fc1' && e.type==='saida' ? fmtBRL(e.value) : '')+'</td>' +
@@ -1142,12 +1297,29 @@
       '</tbody></table></div>';
     }
 
+    function contaOptions(sel){
+      return ['fc1','fc2','fc3'].map(function(c){ return '<option value="'+c+'"'+(sel===c?' selected':'')+'>'+CONTA_LABELS[c]+'</option>'; }).join('');
+    }
+    var draft = state.transferDraft || {};
+    var transferHtml = READ_ONLY ? '' : ('<div class="panel" id="transferPanel">' +
+      '<div class="panel-title">Transferência entre contas</div>' +
+      '<div class="panel-sub">Lança os dois lados de uma vez: saída na conta de origem e entrada na de destino. Use para pagar o cartão do Itaú.</div>' +
+      '<div class="form-row">' +
+        '<div class="field"><label>Data</label><input type="date" id="trData" value="'+todayISO()+'"></div>' +
+        '<div class="field"><label>De</label><select id="trDe">'+contaOptions(draft.de || 'fc1')+'</select></div>' +
+        '<div class="field"><label>Para</label><select id="trPara">'+contaOptions(draft.para || 'fc3')+'</select></div>' +
+        '<div class="field"><label>Valor (R$)</label><input type="text" inputmode="decimal" id="trValor" placeholder="0,00" value="'+(draft.valor ? fmtNumberBR(draft.valor) : '')+'"></div>' +
+        '<div class="field grow"><label>Quem fez a movimentação</label><input type="text" id="trQuem" placeholder="Nome da pessoa"></div>' +
+      '</div>' +
+      '<button type="button" class="btn btn-primary" id="trBtn">Lançar transferência</button>' +
+    '</div>');
     var tituloLista = state.filters.data
       ? 'Lançamentos de '+new Date(state.filters.data+'T00:00:00').toLocaleDateString('pt-BR')
       : (state.filters.mes ? 'Lançamentos de '+fmtMonthLabel(state.filters.mes) : 'Lançamentos de '+fmtMonthLabel(state.month));
-    return pasteHtml + formHtml + filterHtml + '<div class="panel">' +
+    return transferHtml + pasteHtml + formHtml + filterHtml + '<div class="panel">' +
       '<div class="panel-title">'+tituloLista+'</div>' +
-      '<div class="panel-sub">'+list.length+' lançamento(s)</div>' +
+      '<div class="panel-sub">'+list.length+' lançamento(s)'+
+        (READ_ONLY ? '' : ' &nbsp; <button type="button" class="btn" id="undoBtn"'+(undoStack.length?'':' disabled style="opacity:.5;cursor:not-allowed"')+'>↶ Voltar ao estado anterior'+(undoStack.length?' ('+undoStack.length+')':'')+'</button>')+'</div>' +
       rowsHtml +
     '</div>';
   }
@@ -1192,25 +1364,26 @@
     var acumulado = 0;
     var rows = months.map(function(m){
       var t = monthTotals(m, conta);
-      acumulado += t.resultado;
+      acumulado += t.resultado + t.transfIn - t.transfOut;
       // Receita do mês + saldo do mês anterior (acumulado de tudo que veio antes deste mês, da própria conta)
       var receitaComSaldo = t.receita + cumulativeBalanceBeforeMonth(m, conta);
       // Receita do mês (sem o saldo anterior lançado) menos despesas do mês
       var resultadoMes = t.receita - saldoAnteriorForMonth(m, conta) - t.despesa;
-      return {month:m, t:t, acumulado:acumulado, receitaComSaldo:receitaComSaldo, resultadoMes:resultadoMes};
+      return {month:m, t:t, acumulado:acumulado, receitaComSaldo:receitaComSaldo, resultadoMes:resultadoMes, transfLiquido: t.transfIn - t.transfOut};
     });
     rows.reverse();
     return rows;
   }
 
   function fluxoTableHtml(rows){
-    return '<div class="table-wrap"><table><thead><tr><th>Mês</th><th style="text-align:right">Receita do mês +<br>saldo mês anterior</th><th style="text-align:right">Despesas do mês</th><th style="text-align:right">Receita do mês menos<br>despesas do mês</th><th style="text-align:right">Acumulado do mês</th></tr></thead><tbody>' +
+    return '<div class="table-wrap"><table><thead><tr><th>Mês</th><th style="text-align:right">Receita do mês +<br>saldo mês anterior</th><th style="text-align:right">Despesas do mês</th><th style="text-align:right">Receita do mês menos<br>despesas do mês</th><th style="text-align:right">Ajustes de limite<br>(entradas − saídas)</th><th style="text-align:right">Acumulado do mês</th></tr></thead><tbody>' +
       rows.map(function(r){
         return '<tr>' +
           '<td style="text-transform:capitalize">'+fmtMonthLabel(r.month)+(r.month===state.month?' <span class="badge entrada">mês atual</span>':'')+'</td>' +
           '<td class="num" style="color:'+(r.receitaComSaldo>=0?'var(--positive)':'var(--negative)')+'">'+fmtBRL(r.receitaComSaldo)+'</td>' +
           '<td class="num" style="color:var(--negative)">'+fmtBRL(r.t.despesa)+'</td>' +
           '<td class="num" style="color:'+(r.resultadoMes>=0?'var(--positive)':'var(--negative)')+'">'+fmtBRL(r.resultadoMes)+'</td>' +
+          '<td class="num" style="color:var(--text-muted)">'+fmtBRL(r.transfLiquido)+'</td>' +
           '<td class="num" style="font-weight:600;color:'+(r.acumulado>=0?'var(--positive)':'var(--negative)')+'">'+fmtBRL(r.acumulado)+'</td>' +
         '</tr>';
       }).join('') +
@@ -1413,6 +1586,66 @@
 
   // ---------- Event handlers ----------
   function attachViewHandlers(){
+    var trBtn = document.getElementById('trBtn');
+    if (trBtn){
+      trBtn.addEventListener('click', function(){
+        var data = document.getElementById('trData').value;
+        var de = document.getElementById('trDe').value;
+        var para = document.getElementById('trPara').value;
+        var valor = parseBRNumber(document.getElementById('trValor').value);
+        var quem = document.getElementById('trQuem').value.trim();
+        if (!data){ appAlert('Preencha a data da transferência.'); return; }
+        if (de === para){ appAlert('Escolha contas diferentes em "De" e "Para".'); return; }
+        if (isNaN(valor) || valor <= 0){ appAlert('Informe o valor da transferência.'); return; }
+        appConfirm('Lançar a transferência de '+fmtBRL(valor)+' de '+CONTA_LABELS[de]+' para '+CONTA_LABELS[para]+' em '+new Date(data+'T00:00:00').toLocaleDateString('pt-BR')+'? Serão criados os dois lados (saída e entrada).', function(){
+          postTransfer(data, de, para, valor, quem);
+          state.transferDraft = null;
+          render();
+          saveAppData();
+        });
+      });
+    }
+    var limTransferBtn = document.getElementById('limTransferBtn');
+    if (limTransferBtn){
+      limTransferBtn.addEventListener('click', function(){
+        state.transferDraft = {de: 'fc1', para: 'fc3', valor: Math.max(0, -saldoDaConta('fc3'))};
+        setView('lancamentos');
+        window.scrollTo(0, 0);
+      });
+    }
+    var limEditBtn = document.getElementById('limEditBtn');
+    if (limEditBtn){
+      limEditBtn.addEventListener('click', function(){
+        appPrompt('Limite do cartão Itaú (R$):', fmtNumberBR(state.settings.cardLimit), function(v){
+          var n = parseBRNumber(v);
+          if (isNaN(n) || n <= 0){ appAlert('Informe um valor válido para o limite.'); return; }
+          state.settings.cardLimit = n;
+          render();
+          saveAppData();
+        });
+      });
+    }
+    var limAjusteBtn = document.getElementById('limAjusteBtn');
+    if (limAjusteBtn){
+      limAjusteBtn.addEventListener('click', function(){
+        var limiteCfg = Number(state.settings.cardLimit) || 5000;
+        var dispAtual = Math.max(0, limiteCfg - Math.max(0, -saldoDaConta('fc3')));
+        appPrompt('Quanto de limite está DISPONÍVEL hoje, segundo o app do Itaú? (R$)', fmtNumberBR(dispAtual), function(v){
+          var disp = parseBRNumber(v);
+          if (isNaN(disp) || disp < 0){ appAlert('Informe um valor válido (zero ou mais).'); return; }
+          var informado = Math.round((limiteCfg - disp) * 100) / 100; // limite usado equivalente
+          var dif = Math.round((-informado - saldoDaConta('fc3')) * 100) / 100;
+          if (Math.abs(dif) < 0.005){ appAlert('O saldo do Itaú já corresponde a esse limite disponível. Nada a ajustar.'); return; }
+          appConfirm('Lançar um ajuste de '+fmtBRL(Math.abs(dif))+' ('+(dif > 0 ? 'entrada' : 'saída')+') no Itaú, para o limite disponível ficar em '+fmtBRL(disp)+'? Ele não conta como receita nem despesa.', function(){
+            var cat = resolveCategory('Ajuste de limite');
+            state.entries.push({id: uid('entry'), date: todayISO(), type: dif > 0 ? 'entrada' : 'saida', conta: 'fc3', categoryId: cat.id,
+              description: 'Ajuste ao limite disponível no app do Itaú (R$ '+fmtNumberBR(disp)+')', value: Math.abs(dif), responsavel: 'ajuste', transf: true, ajuste: true});
+            render();
+            saveAppData();
+          });
+        });
+      });
+    }
     var filterData = document.getElementById('filterData');
     if (filterData){
       filterData.addEventListener('change', function(){
@@ -1450,6 +1683,8 @@
         render();
       });
     }
+    var undoBtn = document.getElementById('undoBtn');
+    if (undoBtn) undoBtn.addEventListener('click', undoLast);
     var pasteBtn = document.getElementById('pasteBtn');
     if (pasteBtn){
       pasteBtn.addEventListener('click', function(){
@@ -1476,7 +1711,9 @@
         var dateVal = fieldVal('date');
         var categoryName = fieldVal('categoryName').trim();
         var descriptionVal = fieldVal('description').trim();
-        var responsavelVal = fieldVal('responsavel').trim();
+        var responsavelVal = canonResp(fieldVal('responsavel'));
+        var transfEl = entryForm.querySelector('#transfInput');
+        var transfVal = !!(transfEl && transfEl.checked);
         if (!dateVal){ appAlert('Preencha a data do lançamento.'); return; }
         if (!categoryName){ appAlert('Preencha o grupo do lançamento.'); return; }
         if (!descriptionVal){ appAlert('Preencha a descrição do lançamento.'); return; }
@@ -1511,11 +1748,11 @@
         if (state.editingEntryId){
           var e = state.entries.find(function(x){ return x.id === state.editingEntryId; });
           e.date = dateVal; e.type = type; e.categoryId = category.id;
-          e.description = descriptionVal; e.value = value; e.conta = conta; e.responsavel = responsavelVal;
+          e.description = descriptionVal; e.value = value; e.conta = conta; e.responsavel = responsavelVal; e.transf = transfVal;
         } else {
           state.entries.push({
             id: uid('entry'), date: dateVal, type: type, conta: conta,
-            categoryId: category.id, description: descriptionVal, value: value, responsavel: responsavelVal
+            categoryId: category.id, description: descriptionVal, value: value, responsavel: responsavelVal, transf: transfVal
           });
         }
         state.editingEntryId = null;
